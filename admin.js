@@ -1,9 +1,9 @@
-// Admin page logic — uses callApi() from script.js
+// Admin page logic — v3.0
 
 var ADMIN_PW = '';
-var CACHE = { students: [], tasks: [] };
+var CACHE = { students: [], tasks: [], lastLeaderboard: [], allScores: [] };
 
-const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+const SESSION_TIMEOUT_MS = 60 * 60 * 1000;
 
 function showLoader() { document.getElementById('loader').classList.remove('hide'); }
 function hideLoader() { document.getElementById('loader').classList.add('hide'); }
@@ -21,13 +21,11 @@ function checkSession() {
   }
   return true;
 }
-
 setInterval(checkSession, 5 * 60 * 1000);
 
-window.addEventListener('load', function () {
-  setTimeout(hideLoader, 400);
-});
+window.addEventListener('load', function () { setTimeout(hideLoader, 400); });
 
+/* ========== LOGIN ========== */
 async function doLogin() {
   var pw = document.getElementById('pwInput').value;
   var err = document.getElementById('loginError');
@@ -78,7 +76,10 @@ async function loadDashboard() {
   document.getElementById('dashView').classList.remove('hidden');
   CACHE.students = res.students || [];
   CACHE.tasks = res.tasks || [];
-  renderLeaderboard(res.leaderboard);
+  CACHE.lastLeaderboard = res.leaderboard || [];
+
+  renderStats();
+  renderLeaderboard(CACHE.lastLeaderboard);
   renderStudents(CACHE.students);
   renderTasks(CACHE.tasks);
   renderStudentPicker();
@@ -95,14 +96,46 @@ function switchTab(name) {
   });
 }
 
-/* -------- Leaderboard -------- */
+/* ========== STATS DASHBOARD ========== */
+function renderStats() {
+  var students = CACHE.students || [];
+  var tasks = CACHE.tasks || [];
+  var totalPoints = students.reduce(function (s, x) { return s + (Number(x.TotalPoints) || 0); }, 0);
+  var avg = students.length ? Math.round(totalPoints / students.length) : 0;
+  var top = students.reduce(function (best, s) {
+    return (!best || (Number(s.TotalPoints) || 0) > (Number(best.TotalPoints) || 0)) ? s : best;
+  }, null);
+
+  animateNumber(document.getElementById('statStudents'), students.length);
+  animateNumber(document.getElementById('statTasks'), tasks.length);
+  animateNumber(document.getElementById('statAvg'), avg);
+  document.getElementById('statTopPts').textContent = top ? (top.TotalPoints || 0) : '—';
+  document.getElementById('statTopName').textContent = top ? top.Name : 'No data';
+
+  document.getElementById('statStudentsSub').textContent = students.length === 1 ? '1 enrolled' : students.length + ' enrolled';
+  document.getElementById('statTasksSub').textContent = tasks.length === 1 ? '1 created' : tasks.length + ' created';
+}
+
+/* ========== LEADERBOARD ========== */
 function renderLeaderboard(list) {
   var box = document.getElementById('lbList');
   box.innerHTML = '';
-  if (!list || list.length === 0) { box.innerHTML = '<div class="empty">No students yet.</div>'; return; }
-  list.forEach(function (s) {
+  if (!list || list.length === 0) {
+    box.innerHTML = '<div class="empty"><span class="icon">🏆</span>No students yet.<br><span style="font-size:11.5px;opacity:0.7;">Add students in the Students tab.</span></div>';
+    return;
+  }
+
+  var sortBy = document.getElementById('sortSelect').value;
+  var sorted = list.slice();
+  if (sortBy === 'points') sorted.sort(function (a, b) { return b.totalPoints - a.totalPoints; });
+  else if (sortBy === 'name') sorted.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+  else if (sortBy === 'code') sorted.sort(function (a, b) { return String(a.code).localeCompare(String(b.code)); });
+  else sorted.sort(function (a, b) { return a.rank - b.rank; });
+
+  sorted.forEach(function (s) {
     var row = document.createElement('div');
-    row.className = 'row' + (s.rank <= 4 ? ' top-tier' : '');
+    row.className = 'row' + (s.rank <= 4 && sortBy === 'rank' ? ' top-tier' : '');
+    row.onclick = function () { openStudentModal(s.code); };
     row.innerHTML =
       '<div style="display:flex;align-items:center;gap:14px;min-width:0;">' +
       rankBadgeHtml(s.rank) +
@@ -116,40 +149,72 @@ function renderLeaderboard(list) {
   });
 }
 
-/* -------- Students -------- */
+/* ========== STUDENTS ========== */
 function renderStudents(list) {
   var box = document.getElementById('studentList');
   var count = document.getElementById('studentCount');
   box.innerHTML = '';
   count.textContent = (list || []).length;
-  if (!list || list.length === 0) { box.innerHTML = '<div class="empty">No students yet.</div>'; return; }
+  if (!list || list.length === 0) {
+    box.innerHTML = '<div class="empty"><span class="icon">👥</span>No students registered yet.<br><span style="font-size:11.5px;opacity:0.7;">Use the form above to add your first student.</span></div>';
+    return;
+  }
   list.forEach(function (s) {
     var row = document.createElement('div');
-    row.className = 'row';
-    var meta = escapeHtml(s.Code) +
-      (s.Email ? '<span class="dot">·</span>' + escapeHtml(s.Email) : '') +
-      '<span class="dot">·</span>' + (s.TotalPoints || 0) + ' pts';
+    row.className = 'row no-click';
+    var emailBit = s.Email ? '<span class="dot">·</span>' + escapeHtml(s.Email) : '';
+    var codeChip = '<span class="copy-chip" data-code="' + escAttr(s.Code) + '" title="Click to copy">' + escapeHtml(s.Code) + '</span>';
     row.innerHTML =
-      '<div style="min-width:0;">' +
+      '<div style="min-width:0;flex:1;">' +
       '<div class="main">' + escapeHtml(s.Name) + '</div>' +
-      '<div class="sub">' + meta + '</div>' +
+      '<div class="sub">' + codeChip + emailBit + '<span class="dot">·</span>' + (s.TotalPoints || 0) + ' pts</div>' +
       '</div>' +
-      '<button class="btn-danger" onclick="removeStudent(\'' + escAttr(s.Code) + '\')">Remove</button>';
+      '<div class="right">' +
+      '<button class="btn-danger" data-remove-student="' + escAttr(s.Code) + '">Remove</button>' +
+      '</div>';
     box.appendChild(row);
+  });
+  // wire up remove + copy handlers
+  box.querySelectorAll('[data-remove-student]').forEach(function (b) {
+    b.onclick = function (e) { e.stopPropagation(); removeStudent(b.getAttribute('data-remove-student')); };
+  });
+  box.querySelectorAll('.copy-chip').forEach(function (c) {
+    c.onclick = function (e) { e.stopPropagation(); copyToClipboard(c.getAttribute('data-code')); };
   });
 }
 
-/* -------- Tasks -------- */
+function filterStudents() {
+  var q = document.getElementById('studentSearch').value.trim().toLowerCase();
+  var clearBtn = document.querySelector('#tab-students .search-clear');
+  if (clearBtn) clearBtn.classList.toggle('show', q.length > 0);
+  if (!q) { renderStudents(CACHE.students); return; }
+  var filtered = CACHE.students.filter(function (s) {
+    return (String(s.Name || '').toLowerCase().indexOf(q) !== -1) ||
+      (String(s.Code || '').toLowerCase().indexOf(q) !== -1) ||
+      (String(s.Email || '').toLowerCase().indexOf(q) !== -1);
+  });
+  renderStudents(filtered);
+}
+
+function clearStudentSearch() {
+  document.getElementById('studentSearch').value = '';
+  renderStudents(CACHE.students);
+  document.querySelector('#tab-students .search-clear').classList.remove('show');
+}
+
+/* ========== TASKS ========== */
 function renderTasks(list) {
   var box = document.getElementById('taskList');
   var count = document.getElementById('taskCount');
   box.innerHTML = '';
   count.textContent = (list || []).length;
-  if (!list || list.length === 0) { box.innerHTML = '<div class="empty">No tasks yet.</div>'; return; }
-
+  if (!list || list.length === 0) {
+    box.innerHTML = '<div class="empty"><span class="icon">📋</span>No tasks created yet.<br><span style="font-size:11.5px;opacity:0.7;">Use the form above to create your first task.</span></div>';
+    return;
+  }
   list.forEach(function (t) {
     var row = document.createElement('div');
-    row.className = 'row';
+    row.className = 'row no-click';
     var isAll = !t.AssignedTo || String(t.AssignedTo).toUpperCase() === 'ALL';
     var chipHtml;
     if (isAll) {
@@ -164,19 +229,40 @@ function renderTasks(list) {
       var more = labels.length > 3 ? '<span class="chip">+' + (labels.length - 3) + '</span>' : '';
       chipHtml = shown + more;
     }
-
     row.innerHTML =
       '<div style="min-width:0;flex:1;">' +
       '<div class="main">' + escapeHtml(t.TaskName) + '</div>' +
       '<div class="sub">Max ' + t.MaxPoints + ' pts</div>' +
       '<div style="margin-top:4px;">' + chipHtml + '</div>' +
       '</div>' +
-      '<button class="btn-danger" onclick="removeTask(\'' + escAttr(t.TaskID) + '\')">Remove</button>';
+      '<div class="right">' +
+      '<button class="btn-danger" data-remove-task="' + escAttr(t.TaskID) + '">Remove</button>' +
+      '</div>';
     box.appendChild(row);
+  });
+  box.querySelectorAll('[data-remove-task]').forEach(function (b) {
+    b.onclick = function () { removeTask(b.getAttribute('data-remove-task')); };
   });
 }
 
-/* -------- Dropdowns -------- */
+function filterTasks() {
+  var q = document.getElementById('taskSearch').value.trim().toLowerCase();
+  var clearBtn = document.querySelector('#tab-tasks .search-clear');
+  if (clearBtn) clearBtn.classList.toggle('show', q.length > 0);
+  if (!q) { renderTasks(CACHE.tasks); return; }
+  var filtered = CACHE.tasks.filter(function (t) {
+    return String(t.TaskName || '').toLowerCase().indexOf(q) !== -1;
+  });
+  renderTasks(filtered);
+}
+
+function clearTaskSearch() {
+  document.getElementById('taskSearch').value = '';
+  renderTasks(CACHE.tasks);
+  document.querySelector('#tab-tasks .search-clear').classList.remove('show');
+}
+
+/* ========== DROPDOWNS ========== */
 function fillDropdowns() {
   var sSel = document.getElementById('pStudent');
   sSel.innerHTML = CACHE.students.map(function (s) {
@@ -203,7 +289,7 @@ function updateTaskDropdown() {
   }).join('');
 }
 
-/* -------- Student picker -------- */
+/* ========== STUDENT PICKER ========== */
 function toggleAssignMode() {
   Sound.click();
   var mode = document.querySelector('input[name="assignMode"]:checked').value;
@@ -227,14 +313,106 @@ function renderStudentPicker() {
   }).join('');
 }
 
-/* -------- Actions -------- */
+/* ========== AUTO-GENERATE CODE ========== */
+function generateCode() {
+  Sound.click();
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var code = '';
+  for (var i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+  document.getElementById('sCode').value = code;
+  Toast.success('🎲 Generated: ' + code);
+}
+
+/* ========== COPY TO CLIPBOARD ========== */
+function copyToClipboard(text) {
+  Sound.click();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      Toast.success('📋 Copied: ' + text);
+    }).catch(function () {
+      Toast.error('Could not copy.');
+    });
+  } else {
+    // fallback
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); Toast.success('📋 Copied: ' + text); }
+    catch (e) { Toast.error('Could not copy.'); }
+    ta.remove();
+  }
+}
+
+/* ========== CONFIRM MODAL ========== */
+var _confirmResolver = null;
+function showConfirm(opts) {
+  return new Promise(function (resolve) {
+    _confirmResolver = resolve;
+    document.getElementById('confirmIcon').textContent = opts.icon || '⚠️';
+    document.getElementById('confirmTitle').textContent = opts.title || 'Confirm';
+    document.getElementById('confirmMsg').textContent = opts.message || 'Are you sure?';
+    document.getElementById('confirmBtn').textContent = opts.confirmText || 'Confirm';
+    document.getElementById('confirmModal').classList.add('show');
+  });
+}
+function closeConfirm(result) {
+  document.getElementById('confirmModal').classList.remove('show');
+  if (_confirmResolver) { _confirmResolver(result); _confirmResolver = null; }
+}
+
+/* ========== STUDENT DETAIL MODAL ========== */
+var _scoresLoaded = false;
+function openStudentModal(code) {
+  Sound.click();
+  var s = CACHE.students.find(function (x) { return String(x.Code) === String(code); });
+  if (!s) return;
+  var rank = (CACHE.lastLeaderboard.find(function (x) { return String(x.code) === String(code); }) || {}).rank || '—';
+
+  document.getElementById('smTitle').textContent = s.Name;
+  document.getElementById('smSubtitle').textContent = 'Student profile & task breakdown';
+  document.getElementById('smCode').textContent = s.Code;
+  document.getElementById('smPoints').textContent = (s.TotalPoints || 0) + ' pts';
+  document.getElementById('smRank').textContent = '#' + rank;
+  document.getElementById('smEmail').textContent = s.Email || 'No email';
+
+  // Build breakdown client-side from tasks that apply
+  var bd = document.getElementById('smBreakdown');
+  bd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px;">Loading…</div>';
+  document.getElementById('studentModal').classList.add('show');
+
+  // Fetch detailed breakdown via verifyStudent (works with existing backend)
+  callApi('verifyStudent', { code: s.Code }).then(function (res) {
+    if (!res.success) {
+      bd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px;">Could not load breakdown.</div>';
+      return;
+    }
+    if (!res.breakdown || !res.breakdown.length) {
+      bd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px;">No tasks assigned.</div>';
+      return;
+    }
+    bd.innerHTML = res.breakdown.map(function (t) {
+      return '<div class="bd-row">' +
+        '<div class="bd-name">' + (t.done ? '✓ ' : '○ ') + escapeHtml(t.taskName) + '</div>' +
+        '<div class="bd-pts">' + t.points + '/' + t.maxPoints + '</div>' +
+        '</div>';
+    }).join('');
+  });
+}
+function closeStudentModal() {
+  Sound.click();
+  document.getElementById('studentModal').classList.remove('show');
+}
+
+/* ========== ACTIONS ========== */
 async function addStudent() {
   var code = document.getElementById('sCode').value.trim();
   var name = document.getElementById('sName').value.trim();
   var email = document.getElementById('sEmail').value.trim();
   var msg = document.getElementById('studentMsg');
   msg.textContent = '';
-  if (!code || !name) { msg.className = 'error'; msg.textContent = 'Code and name are required.'; Sound.error(); return; }
+  if (!code || !name) {
+    msg.className = 'error'; msg.textContent = 'Code and name are required.';
+    Sound.error(); return;
+  }
 
   Sound.click();
   showLoader();
@@ -243,12 +421,10 @@ async function addStudent() {
   touchSession();
 
   if (!res.success) {
-    msg.className = 'error';
-    msg.textContent = res.message || 'Could not add student.';
+    msg.className = 'error'; msg.textContent = res.message || 'Could not add student.';
     Toast.error('✗ ' + (res.message || 'Could not add student.'));
     return;
   }
-
   msg.className = '';
   if (email) {
     Toast.success(res.emailSent
@@ -264,7 +440,13 @@ async function addStudent() {
 }
 
 async function removeStudent(code) {
-  if (!confirm('Remove this student? Their scores will remain in the Scores sheet.')) return;
+  var ok = await showConfirm({
+    icon: '🗑️',
+    title: 'Remove student?',
+    message: 'This will remove "' + code + '" from the Students sheet. Their scores will remain in the Scores sheet.',
+    confirmText: 'Remove'
+  });
+  if (!ok) return;
   Sound.click();
   showLoader();
   await callApi('deleteStudent', { password: ADMIN_PW, code: code });
@@ -289,10 +471,8 @@ async function addTask() {
       document.querySelectorAll('#studentPickList input[type="checkbox"]:checked')
     ).map(function (cb) { return cb.value; });
     if (checked.length === 0) {
-      msg.className = 'error';
-      msg.textContent = 'Select at least one student.';
-      Sound.error();
-      return;
+      msg.className = 'error'; msg.textContent = 'Select at least one student.';
+      Sound.error(); return;
     }
     assignedTo = checked.join(',');
   }
@@ -307,12 +487,10 @@ async function addTask() {
   touchSession();
 
   if (!res.success) {
-    msg.className = 'error';
-    msg.textContent = res.message || 'Could not create task.';
+    msg.className = 'error'; msg.textContent = res.message || 'Could not create task.';
     Toast.error('✗ ' + (res.message || 'Could not create task.'));
     return;
   }
-
   msg.className = '';
   Toast.success('✓ Task created — ' + name);
   document.getElementById('tName').value = '';
@@ -323,7 +501,13 @@ async function addTask() {
 }
 
 async function removeTask(taskId) {
-  if (!confirm('Remove this task? Existing scores for it will remain in the Scores sheet.')) return;
+  var ok = await showConfirm({
+    icon: '🗑️',
+    title: 'Remove task?',
+    message: 'This will remove the task from the Tasks sheet. Existing scores for it will remain in the Scores sheet.',
+    confirmText: 'Remove'
+  });
+  if (!ok) return;
   Sound.click();
   showLoader();
   await callApi('deleteTask', { password: ADMIN_PW, taskId: taskId });
@@ -340,10 +524,8 @@ async function assignPoints() {
   var msg = document.getElementById('pointsMsg');
   msg.textContent = '';
   if (!student || !task || points === '') {
-    msg.className = 'error';
-    msg.textContent = 'Fill in all fields.';
-    Sound.error();
-    return;
+    msg.className = 'error'; msg.textContent = 'Fill in all fields.';
+    Sound.error(); return;
   }
 
   Sound.click();
@@ -355,20 +537,62 @@ async function assignPoints() {
   touchSession();
 
   if (!res.success) {
-    msg.className = 'error';
-    msg.textContent = res.message || 'Could not save.';
+    msg.className = 'error'; msg.textContent = res.message || 'Could not save.';
     Toast.error('✗ ' + (res.message || 'Could not save.'));
     return;
   }
-
   msg.className = '';
   Toast.success('✓ Points saved · Leaderboard updated');
   document.getElementById('pPoints').value = '';
-  renderLeaderboard(res.leaderboard);
   loadDashboard();
 }
 
-/* -------- Rank badge helper -------- */
+/* ========== EXPORT CSV ========== */
+function downloadCsv(filename, rows) {
+  var csv = rows.map(function (r) {
+    return r.map(function (c) {
+      var s = String(c == null ? '' : c);
+      if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }).join(',');
+  }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  Sound.success();
+}
+
+function exportStudentsCsv() {
+  if (!CACHE.students.length) { Toast.error('No students to export.'); return; }
+  var rows = [['Code', 'Name', 'Email', 'TotalPoints']];
+  CACHE.students.forEach(function (s) {
+    rows.push([s.Code, s.Name, s.Email || '', s.TotalPoints || 0]);
+  });
+  var d = new Date().toISOString().slice(0, 10);
+  downloadCsv('students-' + d + '.csv', rows);
+  Toast.success('✓ Exported ' + CACHE.students.length + ' students');
+}
+
+function exportLeaderboardCsv() {
+  if (!CACHE.lastLeaderboard.length) { Toast.error('No leaderboard data.'); return; }
+  var rows = [['Rank', 'Name', 'Code', 'Points']];
+  CACHE.lastLeaderboard.forEach(function (s) {
+    rows.push([s.rank, s.name, s.code, s.totalPoints]);
+  });
+  var d = new Date().toISOString().slice(0, 10);
+  downloadCsv('leaderboard-' + d + '.csv', rows);
+  Toast.success('✓ Leaderboard exported');
+}
+
+/* ========== HELPERS ========== */
 function rankBadgeHtml(rank) {
   if (rank >= 1 && rank <= 4) {
     return '<div class="rank-badge img">' +
@@ -379,7 +603,6 @@ function rankBadgeHtml(rank) {
   return '<div class="rank-badge">' + rank + '</div>';
 }
 
-/* -------- Utilities -------- */
 function escapeHtml(str) {
   var d = document.createElement('div');
   d.textContent = str == null ? '' : String(str);
@@ -389,7 +612,7 @@ function escAttr(str) {
   return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
-/* -------- Boot -------- */
+/* ========== BOOT ========== */
 window.addEventListener('load', function () {
   var saved = sessionStorage.getItem('adminPw');
   if (saved) {
@@ -399,5 +622,19 @@ window.addEventListener('load', function () {
   }
   document.getElementById('pwInput').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') doLogin();
+  });
+  // Close modals on backdrop click
+  document.getElementById('confirmModal').addEventListener('click', function (e) {
+    if (e.target === this) closeConfirm(false);
+  });
+  document.getElementById('studentModal').addEventListener('click', function (e) {
+    if (e.target === this) closeStudentModal();
+  });
+  // ESC closes modals
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      if (document.getElementById('confirmModal').classList.contains('show')) closeConfirm(false);
+      if (document.getElementById('studentModal').classList.contains('show')) closeStudentModal();
+    }
   });
 });
