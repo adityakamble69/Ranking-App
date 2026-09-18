@@ -3,19 +3,12 @@
  * Used by both index.html (student) and admin.html (admin)
  *
  * >>> PASTE YOUR DEPLOYED GAS WEB APP URL BELOW <<<
- * Apps Script editor -> Deploy -> New deployment -> Web app
- * Copy the URL that ends in /exec
  *******************************************************/
 const API_URL = "https://script.google.com/macros/s/AKfycbwK1CBHWNDO0MXyoapwtzR0X-Mlb6vuaWPwcajI8SAZWpU9mI7-qy8P0-noa34Ljn79EQ/exec";
-
 
 const API_TIMEOUT_MS = 45000;
 const API_RETRY_ONCE = true;
 
-/**
- * Calls the GAS backend.
- * Returns parsed JSON (always an object with .success).
- */
 async function callApi(action, payload) {
   if (!API_URL || API_URL.indexOf('PASTE_YOUR') !== -1) {
     console.error('[callApi] API_URL not configured');
@@ -71,7 +64,6 @@ async function callApi(action, payload) {
     return data;
 
   } catch (err) {
-    // Retry once for safe (read-only) actions on genuine network errors
     var writeActions = ['assignPoints', 'addStudent', 'addTask', 'deleteStudent', 'deleteTask'];
     if (API_RETRY_ONCE && isNetworkError(err) && writeActions.indexOf(action) === -1) {
       console.warn('[callApi] Retrying', action, 'after network error');
@@ -87,8 +79,6 @@ async function callApi(action, payload) {
     return { success: false, message: "Network error. Check your internet connection and try again." };
   }
 }
-
-/* ---------- internal helpers ---------- */
 
 async function callApiOnce(action, body, startedAt) {
   try {
@@ -128,10 +118,6 @@ function sleep(ms) {
   return new Promise(function(r) { setTimeout(r, ms); });
 }
 
-/**
- * Disables a button while an async fn runs, with optional loading text.
- * Usage: const res = await withLoading(btn, 'Saving...', () => callApi(...));
- */
 async function withLoading(btn, loadingText, fn) {
   if (!btn) return fn();
   const original = btn.textContent;

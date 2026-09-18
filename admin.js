@@ -3,9 +3,26 @@
 var ADMIN_PW = '';
 var CACHE = { students: [], tasks: [] };
 
-/* ===== Loading screen control ===== */
+const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+
 function showLoader(){ document.getElementById('loader').classList.remove('hide'); }
 function hideLoader(){ document.getElementById('loader').classList.add('hide'); }
+
+function touchSession(){
+  sessionStorage.setItem('adminLastActivity', String(Date.now()));
+}
+
+function checkSession(){
+  var last = Number(sessionStorage.getItem('adminLastActivity') || 0);
+  if (last && Date.now() - last > SESSION_TIMEOUT_MS) {
+    doLogout();
+    alert('Session expired. Please sign in again.');
+    return false;
+  }
+  return true;
+}
+
+setInterval(checkSession, 5 * 60 * 1000);
 
 window.addEventListener('load', function(){
   setTimeout(hideLoader, 400);
@@ -27,11 +44,13 @@ async function doLogin(){
   if(!res.success){ err.textContent = 'Incorrect password. Try again.'; return; }
   ADMIN_PW = pw;
   sessionStorage.setItem('adminPw', pw);
+  touchSession();
   loadDashboard();
 }
 
 function doLogout(){
   sessionStorage.removeItem('adminPw');
+  sessionStorage.removeItem('adminLastActivity');
   ADMIN_PW = '';
   document.getElementById('dashView').classList.add('hidden');
   document.getElementById('loginView').classList.remove('hidden');
@@ -47,6 +66,7 @@ async function loadDashboard(){
     document.getElementById('loginView').classList.remove('hidden');
     return;
   }
+  touchSession();
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('dashView').classList.remove('hidden');
   CACHE.students = res.students || [];
@@ -67,7 +87,6 @@ function switchTab(name){
   });
 }
 
-/* -------- Leaderboard -------- */
 function renderLeaderboard(list){
   var box = document.getElementById('lbList');
   box.innerHTML = '';
@@ -88,7 +107,6 @@ function renderLeaderboard(list){
   });
 }
 
-/* -------- Students -------- */
 function renderStudents(list){
   var box = document.getElementById('studentList');
   var count = document.getElementById('studentCount');
@@ -111,7 +129,6 @@ function renderStudents(list){
   });
 }
 
-/* -------- Tasks -------- */
 function renderTasks(list){
   var box = document.getElementById('taskList');
   var count = document.getElementById('taskCount');
@@ -148,7 +165,6 @@ function renderTasks(list){
   });
 }
 
-/* -------- Dropdowns -------- */
 function fillDropdowns(){
   var sSel = document.getElementById('pStudent');
   sSel.innerHTML = CACHE.students.map(function(s){
@@ -175,7 +191,6 @@ function updateTaskDropdown(){
   }).join('');
 }
 
-/* -------- Student picker -------- */
 function toggleAssignMode(){
   var mode = document.querySelector('input[name="assignMode"]:checked').value;
   document.getElementById('optAll').classList.toggle('checked', mode === 'all');
@@ -198,7 +213,6 @@ function renderStudentPicker(){
   }).join('');
 }
 
-/* -------- Actions -------- */
 async function addStudent(){
   var code = document.getElementById('sCode').value.trim();
   var name = document.getElementById('sName').value.trim();
@@ -210,6 +224,7 @@ async function addStudent(){
   showLoader();
   var res = await callApi('addStudent', { password: ADMIN_PW, code: code, name: name, email: email });
   hideLoader();
+  touchSession();
 
   if(!res.success){ msg.className='error'; msg.textContent = res.message || 'Could not add student.'; return; }
 
@@ -233,6 +248,7 @@ async function removeStudent(code){
   await callApi('deleteStudent', { password: ADMIN_PW, code: code });
   await loadDashboard();
   hideLoader();
+  touchSession();
 }
 
 async function addTask(){
@@ -263,6 +279,7 @@ async function addTask(){
     maxPoints: max, assignedTo: assignedTo
   });
   hideLoader();
+  touchSession();
 
   if(!res.success){ msg.className='error'; msg.textContent = res.message || 'Could not create task.'; return; }
 
@@ -280,6 +297,7 @@ async function removeTask(taskId){
   await callApi('deleteTask', { password: ADMIN_PW, taskId: taskId });
   await loadDashboard();
   hideLoader();
+  touchSession();
 }
 
 async function assignPoints(){
@@ -295,6 +313,7 @@ async function assignPoints(){
     password: ADMIN_PW, studentCode: student, taskId: task, points: points
   });
   hideLoader();
+  touchSession();
 
   if(!res.success){ msg.className='error'; msg.textContent = res.message || 'Could not save.'; return; }
 
@@ -304,7 +323,6 @@ async function assignPoints(){
   loadDashboard();
 }
 
-/* -------- Rank badge helper -------- */
 function rankBadgeHtml(rank){
   if (rank >= 1 && rank <= 4) {
     return '<div class="rank-badge img">' +
@@ -315,7 +333,6 @@ function rankBadgeHtml(rank){
   return '<div class="rank-badge">' + rank + '</div>';
 }
 
-/* -------- Utilities -------- */
 function escapeHtml(str){
   var d = document.createElement('div');
   d.textContent = str == null ? '' : String(str);
@@ -329,6 +346,7 @@ window.addEventListener('load', function(){
   var saved = sessionStorage.getItem('adminPw');
   if(saved){
     ADMIN_PW = saved;
+    touchSession();
     loadDashboard();
   }
   document.getElementById('pwInput').addEventListener('keydown', function(e){

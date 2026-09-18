@@ -50,7 +50,6 @@
       overflow-x: hidden;
     }
 
-    /* Scanline + vignette overlay */
     body::before {
       content: "";
       position: fixed;
@@ -70,7 +69,6 @@
       z-index: 2;
     }
 
-    /* ========= LOADING SCREEN ========= */
     #loader {
       position: fixed;
       inset: 0;
@@ -141,10 +139,6 @@
       font-family: 'Orbitron', sans-serif;
       font-size: 34px;
       font-weight: 900;
-      background: linear-gradient(135deg, var(--neon), var(--neon-2));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
       filter: drop-shadow(0 0 14px rgba(74, 217, 228, 0.6));
     }
 
@@ -195,7 +189,6 @@
       }
     }
 
-    /* ========= HERO ========= */
     .hero {
       text-align: center;
       margin-bottom: 28px;
@@ -249,7 +242,6 @@
       font-weight: 600;
     }
 
-    /* ========= CARD (angled corners) ========= */
     .card {
       position: relative;
       background: var(--surface);
@@ -323,7 +315,6 @@
       line-height: 1.6;
     }
 
-    /* ========= INPUTS ========= */
     input[type=text] {
       width: 100%;
       padding: 14px 16px;
@@ -425,7 +416,6 @@
       display: none !important;
     }
 
-    /* ========= PROFILE ========= */
     .profile {
       display: flex;
       align-items: center;
@@ -498,7 +488,6 @@
       font-weight: 700;
     }
 
-    /* ========= SECTION TITLE ========= */
     .section-title {
       display: flex;
       align-items: center;
@@ -520,7 +509,6 @@
       background: linear-gradient(90deg, rgba(74, 217, 228, 0.55), transparent);
     }
 
-    /* ========= TASK ROWS ========= */
     .task-row {
       display: flex;
       align-items: center;
@@ -598,7 +586,6 @@
       box-shadow: 0 0 12px rgba(74, 217, 228, 0.35);
     }
 
-    /* ========= LEADERBOARD ========= */
     .lb-row {
       display: flex;
       align-items: center;
@@ -644,7 +631,6 @@
       text-shadow: 0 0 10px rgba(74, 217, 228, 0.5);
     }
 
-    /* ========= RANK BADGES ========= */
     .rank-badge {
       width: 34px;
       height: 34px;
@@ -727,7 +713,6 @@
 
 <body>
 
-  <!-- ===== LOADING SCREEN ===== -->
   <div id="loader">
     <div class="loader-emblem"><span>🏆</span></div>
     <div class="loader-text">Loading…</div>
@@ -741,7 +726,6 @@
       <p>Complete · Compete · Conquer</p>
     </div>
 
-    <!-- LOGIN -->
     <div id="loginView" class="card login-card">
       <h2>Enter Your Code</h2>
       <p>Enter the unique code your teacher sent to your email.</p>
@@ -750,7 +734,6 @@
       <div class="error" id="loginError"></div>
     </div>
 
-    <!-- DASHBOARD -->
     <div id="dashView" class="hidden">
       <div class="card">
         <div class="profile">

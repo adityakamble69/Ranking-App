@@ -1,12 +1,9 @@
 // Student page logic — uses callApi() from script.js
 
-/* ===== Loading screen control ===== */
 function showLoader(){ document.getElementById('loader').classList.remove('hide'); }
 function hideLoader(){ document.getElementById('loader').classList.add('hide'); }
 
-/* Hide loader once page + API first-ready */
 window.addEventListener('load', function(){
-  // Small delay so animation is visible even on fast connections
   setTimeout(hideLoader, 400);
 });
 
@@ -86,7 +83,6 @@ function renderLeaderboard(list, myCode){
   });
 }
 
-/* ---------- Rank badge helper ---------- */
 function rankBadgeHtml(rank){
   if (rank >= 1 && rank <= 4) {
     return '<div class="rank-badge img">' +
@@ -103,7 +99,6 @@ function escapeHtml(str){
   return d.innerHTML;
 }
 
-/* Auto-login if session exists */
 window.addEventListener('load', async function(){
   var saved = sessionStorage.getItem('studentCode');
   if(saved){

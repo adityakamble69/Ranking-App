@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <title>Admin · Learning Arena</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -69,7 +70,6 @@
       z-index: 2;
     }
 
-    /* ========= LOADING SCREEN ========= */
     #loader {
       position: fixed;
       inset: 0;
@@ -188,7 +188,6 @@
       }
     }
 
-    /* ========= HEADER ========= */
     .top {
       display: flex;
       align-items: center;
@@ -258,7 +257,6 @@
       box-shadow: 0 0 14px rgba(74, 217, 228, 0.35);
     }
 
-    /* ========= CARD ========= */
     .card {
       position: relative;
       background: var(--surface);
@@ -297,7 +295,6 @@
       border-right: 2px solid;
     }
 
-    /* ========= LOGIN ========= */
     .login-card {
       max-width: 420px;
       margin: 80px auto 0;
@@ -345,7 +342,6 @@
       }
     }
 
-    /* ========= FORM ELEMENTS ========= */
     input,
     select {
       width: 100%;
@@ -512,7 +508,6 @@
       display: none !important;
     }
 
-    /* ========= TABS ========= */
     .tabs {
       display: flex;
       gap: 6px;
@@ -552,7 +547,6 @@
       box-shadow: 0 0 18px rgba(74, 217, 228, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.15);
     }
 
-    /* ========= HEADINGS ========= */
     h3 {
       margin: 0 0 18px;
       font-family: 'Orbitron', sans-serif;
@@ -588,7 +582,6 @@
       box-shadow: 0 0 10px rgba(74, 217, 228, 0.25);
     }
 
-    /* ========= ROWS ========= */
     .row {
       display: flex;
       align-items: center;
@@ -631,7 +624,6 @@
       margin: 0 6px;
     }
 
-    /* ========= RANK BADGES ========= */
     .rank-badge {
       width: 34px;
       height: 34px;
@@ -820,7 +812,6 @@
       border: 1px solid rgba(74, 217, 228, 0.25);
     }
 
-    /* ========= CHIPS ========= */
     .chip {
       display: inline-block;
       font-size: 10.5px;
@@ -864,7 +855,6 @@
 
 <body>
 
-  <!-- ===== LOADING SCREEN ===== -->
   <div id="loader">
     <div class="loader-emblem"><span>⚙️</span></div>
     <div class="loader-text">Initializing…</div>
@@ -873,7 +863,6 @@
 
   <div class="wrap">
 
-    <!-- LOGIN -->
     <div id="loginView" class="card login-card">
       <div class="logo-lg">⚙️</div>
       <h2>Admin Access</h2>
@@ -884,7 +873,6 @@
       <div class="error" id="loginError"></div>
     </div>
 
-    <!-- DASHBOARD -->
     <div id="dashView" class="hidden">
 
       <div class="top">
@@ -905,13 +893,11 @@
         <div class="tab" data-tab="tasks" onclick="switchTab('tasks')">Tasks</div>
       </div>
 
-      <!-- Ranking -->
       <div id="tab-rank" class="card">
         <h3>Live Leaderboard</h3>
         <div id="lbList"></div>
       </div>
 
-      <!-- Points -->
       <div id="tab-points" class="card hidden">
         <h3>Assign / Update Points</h3>
         <label>Student</label>
@@ -924,13 +910,12 @@
         <div class="ok" id="pointsMsg"></div>
       </div>
 
-      <!-- Students -->
       <div id="tab-students" class="card hidden">
         <h3>Register New Student</h3>
         <div class="grid2">
           <div>
             <label>Code</label>
-            <input id="sCode" type="text" placeholder="e.g. STU042">
+            <input id="sCode" type="text" placeholder="e.g. K7NQ4X2M">
           </div>
           <div>
             <label>Full Name</label>
@@ -949,7 +934,6 @@
         <div id="studentList"></div>
       </div>
 
-      <!-- Tasks -->
       <div id="tab-tasks" class="card hidden">
         <h3>Create New Task</h3>
         <label>Task Name</label>
