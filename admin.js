@@ -1,7 +1,7 @@
-// Admin page logic — v3.0
+// Admin page logic — v3.0 (performance optimized)
 
 var ADMIN_PW = '';
-var CACHE = { students: [], tasks: [], lastLeaderboard: [], allScores: [] };
+var CACHE = { students: [], tasks: [], lastLeaderboard: [] };
 
 const SESSION_TIMEOUT_MS = 60 * 60 * 1000;
 
@@ -96,7 +96,7 @@ function switchTab(name) {
   });
 }
 
-/* ========== STATS DASHBOARD ========== */
+/* ========== STATS ========== */
 function renderStats() {
   var students = CACHE.students || [];
   var tasks = CACHE.tasks || [];
@@ -132,6 +132,7 @@ function renderLeaderboard(list) {
   else if (sortBy === 'code') sorted.sort(function (a, b) { return String(a.code).localeCompare(String(b.code)); });
   else sorted.sort(function (a, b) { return a.rank - b.rank; });
 
+  var frag = document.createDocumentFragment();
   sorted.forEach(function (s) {
     var row = document.createElement('div');
     row.className = 'row' + (s.rank <= 4 && sortBy === 'rank' ? ' top-tier' : '');
@@ -145,8 +146,9 @@ function renderLeaderboard(list) {
       '</div>' +
       '</div>' +
       '<div class="pts">' + s.totalPoints + ' PTS</div>';
-    box.appendChild(row);
+    frag.appendChild(row);
   });
+  box.appendChild(frag);
 }
 
 /* ========== STUDENTS ========== */
@@ -159,6 +161,7 @@ function renderStudents(list) {
     box.innerHTML = '<div class="empty"><span class="icon">👥</span>No students registered yet.<br><span style="font-size:11.5px;opacity:0.7;">Use the form above to add your first student.</span></div>';
     return;
   }
+  var frag = document.createDocumentFragment();
   list.forEach(function (s) {
     var row = document.createElement('div');
     row.className = 'row no-click';
@@ -172,9 +175,9 @@ function renderStudents(list) {
       '<div class="right">' +
       '<button class="btn-danger" data-remove-student="' + escAttr(s.Code) + '">Remove</button>' +
       '</div>';
-    box.appendChild(row);
+    frag.appendChild(row);
   });
-  // wire up remove + copy handlers
+  box.appendChild(frag);
   box.querySelectorAll('[data-remove-student]').forEach(function (b) {
     b.onclick = function (e) { e.stopPropagation(); removeStudent(b.getAttribute('data-remove-student')); };
   });
@@ -212,6 +215,7 @@ function renderTasks(list) {
     box.innerHTML = '<div class="empty"><span class="icon">📋</span>No tasks created yet.<br><span style="font-size:11.5px;opacity:0.7;">Use the form above to create your first task.</span></div>';
     return;
   }
+  var frag = document.createDocumentFragment();
   list.forEach(function (t) {
     var row = document.createElement('div');
     row.className = 'row no-click';
@@ -238,8 +242,9 @@ function renderTasks(list) {
       '<div class="right">' +
       '<button class="btn-danger" data-remove-task="' + escAttr(t.TaskID) + '">Remove</button>' +
       '</div>';
-    box.appendChild(row);
+    frag.appendChild(row);
   });
+  box.appendChild(frag);
   box.querySelectorAll('[data-remove-task]').forEach(function (b) {
     b.onclick = function () { removeTask(b.getAttribute('data-remove-task')); };
   });
@@ -261,6 +266,10 @@ function clearTaskSearch() {
   renderTasks(CACHE.tasks);
   document.querySelector('#tab-tasks .search-clear').classList.remove('show');
 }
+
+/* ========== DEBOUNCED WRAPPERS ========== */
+const debouncedFilterStudents = debounce(filterStudents, 180);
+const debouncedFilterTasks = debounce(filterTasks, 180);
 
 /* ========== DROPDOWNS ========== */
 function fillDropdowns() {
@@ -333,7 +342,6 @@ function copyToClipboard(text) {
       Toast.error('Could not copy.');
     });
   } else {
-    // fallback
     var ta = document.createElement('textarea');
     ta.value = text; document.body.appendChild(ta); ta.select();
     try { document.execCommand('copy'); Toast.success('📋 Copied: ' + text); }
@@ -360,7 +368,6 @@ function closeConfirm(result) {
 }
 
 /* ========== STUDENT DETAIL MODAL ========== */
-var _scoresLoaded = false;
 function openStudentModal(code) {
   Sound.click();
   var s = CACHE.students.find(function (x) { return String(x.Code) === String(code); });
@@ -374,12 +381,10 @@ function openStudentModal(code) {
   document.getElementById('smRank').textContent = '#' + rank;
   document.getElementById('smEmail').textContent = s.Email || 'No email';
 
-  // Build breakdown client-side from tasks that apply
   var bd = document.getElementById('smBreakdown');
   bd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px;">Loading…</div>';
   document.getElementById('studentModal').classList.add('show');
 
-  // Fetch detailed breakdown via verifyStudent (works with existing backend)
   callApi('verifyStudent', { code: s.Code }).then(function (res) {
     if (!res.success) {
       bd.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px;">Could not load breakdown.</div>';
@@ -623,14 +628,12 @@ window.addEventListener('load', function () {
   document.getElementById('pwInput').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') doLogin();
   });
-  // Close modals on backdrop click
   document.getElementById('confirmModal').addEventListener('click', function (e) {
     if (e.target === this) closeConfirm(false);
   });
   document.getElementById('studentModal').addEventListener('click', function (e) {
     if (e.target === this) closeStudentModal();
   });
-  // ESC closes modals
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       if (document.getElementById('confirmModal').classList.contains('show')) closeConfirm(false);
