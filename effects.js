@@ -1,12 +1,7 @@
 /*******************************************************
  * EFFECTS.JS v2 — PERFORMANCE OPTIMIZED
- * - Particles: 30 max, no shadowBlur, 30fps throttle,
- *   pauses on tab hidden
- * - Confetti: reused canvas, auto cleanup
- * - Toast: capped at 3, transform-only animation
  *******************************************************/
 
-/* ============ THEME ============ */
 const ThemeManager = {
     current: localStorage.getItem('theme') || 'dark',
     init() {
@@ -26,7 +21,6 @@ const ThemeManager = {
     toggle() { this.apply(this.current === 'dark' ? 'light' : 'dark'); }
 };
 
-/* ============ SOUND ============ */
 const Sound = {
     enabled: localStorage.getItem('sound') !== 'off',
     ctx: null,
@@ -76,7 +70,6 @@ const Sound = {
     }
 };
 
-/* ============ PARTICLES (optimized) ============ */
 const Particles = {
     canvas: null, ctx: null, particles: [],
     rafId: 0, lastFrame: 0, targetFps: 30, frameInterval: 1000 / 30,
@@ -84,18 +77,14 @@ const Particles = {
     init() {
         if (window.innerWidth < 480 || navigator.hardwareConcurrency <= 2) return;
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
         this.canvas = document.getElementById('particles-canvas');
         if (!this.canvas) return;
         this.ctx = this.canvas.getContext('2d', { alpha: true });
         this.resize();
-
         const count = Math.min(28, Math.round(window.innerWidth / 55));
         for (let i = 0; i < count; i++) this.particles.push(this._make());
-
         window.addEventListener('resize', this._onResize.bind(this));
         document.addEventListener('visibilitychange', this._onVisibility.bind(this));
-
         this._loop(performance.now());
     },
     _onResize() { this.resize(); },
@@ -128,11 +117,9 @@ const Particles = {
         this.rafId = requestAnimationFrame(this._loop.bind(this));
         if (now - this.lastFrame < this.frameInterval) return;
         this.lastFrame = now;
-
         const ctx = this.ctx;
         const w = window.innerWidth, h = window.innerHeight;
         ctx.clearRect(0, 0, w, h);
-
         for (let i = 0; i < this.particles.length; i++) {
             const p = this.particles[i];
             p.x += p.vx; p.y += p.vy;
@@ -146,7 +133,6 @@ const Particles = {
     }
 };
 
-/* ============ CONFETTI (reused canvas) ============ */
 const Confetti = {
     canvas: null, ctx: null, pieces: [], rafId: 0, endAt: 0,
     fire(duration) {
@@ -160,7 +146,6 @@ const Confetti = {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
         this.ctx = this.canvas.getContext('2d');
-
         const colors = ['#4ad9e4', '#7c5cff', '#ffd166', '#ff6b9d', '#6ee7a0', '#ffffff'];
         this.pieces = [];
         const pieceCount = window.innerWidth < 480 ? 70 : 110;
@@ -205,7 +190,6 @@ const Confetti = {
     }
 };
 
-/* ============ TOAST (capped) ============ */
 const Toast = {
     _active: [],
     _container() {
@@ -240,7 +224,6 @@ const Toast = {
     rankUp(m) { this.show(m, 'rankup', 5000); Sound.rankUp(); Confetti.fire(); }
 };
 
-/* ============ NUMBER COUNTER ============ */
 function animateNumber(el, target, duration) {
     if (!el) return;
     duration = duration || 1100;
@@ -258,7 +241,6 @@ function animateNumber(el, target, duration) {
     requestAnimationFrame(step);
 }
 
-/* ============ RIPPLE (delegated) ============ */
 function attachRipple() {
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('button, .tab, .radio-opt');
@@ -274,7 +256,6 @@ function attachRipple() {
     }, { passive: true });
 }
 
-/* ============ DEBOUNCE HELPER ============ */
 function debounce(fn, wait) {
     let t;
     return function () {
@@ -284,7 +265,6 @@ function debounce(fn, wait) {
     };
 }
 
-/* ============ BOOT ============ */
 window.addEventListener('load', () => {
     ThemeManager.init();
     Sound.initBtns();

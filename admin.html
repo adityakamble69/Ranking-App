@@ -249,6 +249,7 @@
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 22px;
+      flex-wrap: wrap;
     }
 
     .brand {
@@ -291,6 +292,12 @@
       font-weight: 600;
     }
 
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
     .logout-top {
       background: transparent;
       color: var(--muted);
@@ -309,6 +316,26 @@
     .logout-top:hover {
       color: var(--neon);
       border-color: var(--neon);
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+    }
+
+    .icon-btn:hover {
+      border-color: var(--neon);
+      transform: translateY(-1px);
     }
 
     .stats-grid {
@@ -466,7 +493,8 @@
     }
 
     input,
-    select {
+    select,
+    textarea {
       width: 100%;
       padding: 12px 14px;
       border-radius: 10px;
@@ -481,22 +509,31 @@
       transition: border-color .15s, box-shadow .15s;
     }
 
+    textarea {
+      font-family: 'Rajdhani', sans-serif;
+      resize: vertical;
+    }
+
     [data-theme="light"] input,
-    [data-theme="light"] select {
+    [data-theme="light"] select,
+    [data-theme="light"] textarea {
       background: rgba(255, 255, 255, 0.95);
     }
 
-    input::placeholder {
+    input::placeholder,
+    textarea::placeholder {
       color: #4a5674;
       font-weight: 500;
     }
 
-    [data-theme="light"] input::placeholder {
+    [data-theme="light"] input::placeholder,
+    [data-theme="light"] textarea::placeholder {
       color: #8a99b8;
     }
 
     input:focus,
-    select:focus {
+    select:focus,
+    textarea:focus {
       border-color: var(--neon);
       box-shadow: 0 0 0 3px rgba(74, 217, 228, 0.14);
     }
@@ -876,6 +913,37 @@
       flex-shrink: 0;
     }
 
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .row-actions .icon-mini {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+    }
+
+    .row-actions .icon-mini:hover {
+      border-color: var(--neon);
+      color: var(--neon);
+    }
+
+    .row-actions .icon-mini.danger:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
     .copy-chip {
       display: inline-flex;
       align-items: center;
@@ -1136,6 +1204,28 @@
       border-color: rgba(74, 217, 228, 0.4);
     }
 
+    .due-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 5px;
+      margin-left: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .due-badge.overdue {
+      background: rgba(255, 77, 106, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(255, 77, 106, 0.4);
+    }
+
+    .due-badge.soon {
+      background: rgba(255, 209, 102, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(255, 209, 102, 0.4);
+    }
+
     .student-picker::-webkit-scrollbar {
       width: 8px;
     }
@@ -1211,6 +1301,8 @@
       position: relative;
       overflow: hidden;
       will-change: transform;
+      max-height: 88vh;
+      overflow-y: auto;
     }
 
     .modal::before {
@@ -1372,6 +1464,175 @@
       white-space: nowrap;
     }
 
+    .announce-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, rgba(255, 209, 102, 0.10), rgba(124, 92, 255, 0.06));
+      border: 1px solid rgba(255, 209, 102, 0.35);
+      font-size: 13.5px;
+      margin-bottom: 14px;
+    }
+
+    .announce-bar.hidden-announce {
+      display: none;
+    }
+
+    .announce-icon {
+      font-size: 18px;
+    }
+
+    .announce-text {
+      flex: 1;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .announce-text.empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .chart-wrap {
+      background: rgba(6, 10, 22, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    [data-theme="light"] .chart-wrap {
+      background: rgba(240, 245, 252, 0.7);
+    }
+
+    .chart-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+    }
+
+    .progress-list {
+      margin-top: 12px;
+    }
+
+    .progress-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .progress-head .val {
+      color: var(--neon);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+    }
+
+    .progress-track {
+      height: 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--neon), var(--neon-2));
+      transition: width .8s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    .bulk-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, rgba(74, 217, 228, 0.10), rgba(124, 92, 255, 0.06));
+      border: 1px solid var(--neon);
+      margin-bottom: 12px;
+    }
+
+    .bulk-count {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      color: var(--neon);
+      letter-spacing: 1.5px;
+      flex: 1;
+    }
+
+    .row-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--neon);
+      cursor: pointer;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13.5px;
+      font-weight: 600;
+      transition: background .1s;
+    }
+
+    .cmd-item:hover,
+    .cmd-item.selected {
+      background: rgba(74, 217, 228, 0.10);
+    }
+
+    .cmd-item .cmd-icon {
+      font-size: 16px;
+      width: 22px;
+      text-align: center;
+    }
+
+    .cmd-item .cmd-label {
+      flex: 1;
+      color: var(--text);
+    }
+
+    .cmd-item .cmd-hint {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    .cmd-empty {
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
     #toast-container {
       position: fixed;
       top: 70px;
@@ -1471,10 +1732,15 @@
           <div class="logo">⚙️</div>
           <div>
             <h1>Admin Console</h1>
-            <p>Control Panel · v3.0</p>
+            <p>Control Panel · v4.0</p>
           </div>
         </div>
-        <button class="logout-top" onclick="doLogout()">Sign Out</button>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="openCommandPalette()" title="Command palette (Ctrl+K)">⌘</button>
+          <button class="icon-btn" onclick="openBackupModal()" title="Backup / Restore">💾</button>
+          <button class="icon-btn" onclick="openChangePwModal()" title="Change password">🔑</button>
+          <button class="logout-top" onclick="doLogout()">Sign Out</button>
+        </div>
       </div>
 
       <div class="stats-grid" id="statsGrid">
@@ -1503,13 +1769,22 @@
       <div class="tabs-sticky">
         <div class="tabs">
           <div class="tab active" data-tab="rank" onclick="switchTab('rank')">Leaderboard</div>
-          <div class="tab" data-tab="points" onclick="switchTab('points')">Assign Points</div>
+          <div class="tab" data-tab="points" onclick="switchTab('points')">Points</div>
           <div class="tab" data-tab="students" onclick="switchTab('students')">Students</div>
           <div class="tab" data-tab="tasks" onclick="switchTab('tasks')">Tasks</div>
+          <div class="tab" data-tab="analytics" onclick="switchTab('analytics')">Analytics</div>
+          <div class="tab" data-tab="log" onclick="switchTab('log')">Log</div>
         </div>
       </div>
 
+      <!-- RANK -->
       <div id="tab-rank" class="card holo">
+        <div class="announce-bar" id="announceBar">
+          <span class="announce-icon">📢</span>
+          <span class="announce-text" id="announceText">No active announcement</span>
+          <button class="btn-ghost" onclick="openAnnounceModal()" style="margin-left:auto;">Edit</button>
+        </div>
+
         <div class="section-h">
           <h3>Live Leaderboard</h3>
           <div class="actions">
@@ -1528,6 +1803,7 @@
         <div id="lbList"></div>
       </div>
 
+      <!-- POINTS -->
       <div id="tab-points" class="card holo hidden">
         <h3>Assign / Update Points</h3>
         <label>Student</label>
@@ -1540,6 +1816,7 @@
         <div class="ok" id="pointsMsg"></div>
       </div>
 
+      <!-- STUDENTS -->
       <div id="tab-students" class="card holo hidden">
         <h3>Register New Student</h3>
         <div class="grid2">
@@ -1564,8 +1841,14 @@
           <h3>All Students</h3>
           <div class="actions">
             <span class="count-pill" id="studentCount">0</span>
+            <button class="btn-ghost" onclick="openCsvImport()">📥 CSV Import</button>
             <button class="btn-ghost" onclick="exportStudentsCsv()">⬇ CSV</button>
           </div>
+        </div>
+        <div class="bulk-bar hidden" id="studentBulkBar">
+          <span class="bulk-count" id="bulkCount">0 selected</span>
+          <button class="btn-danger" onclick="bulkDeleteStudents()">Delete Selected</button>
+          <button class="btn-ghost" onclick="clearStudentSelection()">Clear</button>
         </div>
         <div class="search-wrap">
           <input id="studentSearch" type="text" placeholder="Search by name, code or email…"
@@ -1575,14 +1858,23 @@
         <div id="studentList"></div>
       </div>
 
+      <!-- TASKS -->
       <div id="tab-tasks" class="card holo hidden">
         <h3>Create New Task</h3>
         <label>Task Name</label>
         <input id="tName" type="text" placeholder="e.g. Watch: Intro to Arrays">
         <label>Video Link (optional)</label>
         <input id="tLink" type="text" placeholder="https://...">
-        <label>Max Points</label>
-        <input id="tMax" type="text" inputmode="numeric" placeholder="e.g. 10">
+        <div class="grid2">
+          <div>
+            <label>Max Points</label>
+            <input id="tMax" type="text" inputmode="numeric" placeholder="e.g. 10">
+          </div>
+          <div>
+            <label>Due Date (optional)</label>
+            <input id="tDue" type="date">
+          </div>
+        </div>
 
         <div class="assign-block">
           <label>Assign To</label>
@@ -1614,9 +1906,35 @@
         </div>
         <div id="taskList"></div>
       </div>
+
+      <!-- ANALYTICS -->
+      <div id="tab-analytics" class="card holo hidden">
+        <h3>Points Analytics</h3>
+        <div class="chart-wrap">
+          <div class="chart-title">Points awarded — last 14 days</div>
+          <canvas id="pointsChart" class="chart-canvas"></canvas>
+        </div>
+
+        <div class="section-h" style="margin-top:24px;">
+          <h3>Task Completion</h3>
+        </div>
+        <div class="progress-list" id="taskProgress"></div>
+      </div>
+
+      <!-- LOG -->
+      <div id="tab-log" class="card holo hidden">
+        <div class="section-h">
+          <h3>Activity Log</h3>
+          <div class="actions">
+            <button class="btn-ghost" onclick="loadActivityLog()">↻ Refresh</button>
+          </div>
+        </div>
+        <div id="activityList"></div>
+      </div>
     </div>
   </div>
 
+  <!-- CONFIRM MODAL -->
   <div id="confirmModal" class="modal-back">
     <div class="modal">
       <div class="m-icon" id="confirmIcon">⚠️</div>
@@ -1629,6 +1947,7 @@
     </div>
   </div>
 
+  <!-- STUDENT DETAIL -->
   <div id="studentModal" class="modal-back">
     <div class="modal student-modal">
       <div class="m-icon">👤</div>
@@ -1659,6 +1978,175 @@
       <div class="modal-actions">
         <button class="modal-cancel" onclick="closeStudentModal()">Close</button>
       </div>
+    </div>
+  </div>
+
+  <!-- EDIT STUDENT -->
+  <div id="editStudentModal" class="modal-back">
+    <div class="modal">
+      <div class="m-icon" style="background:rgba(74,217,228,0.12);border-color:rgba(74,217,228,0.4);">✏️</div>
+      <h4>Edit Student</h4>
+      <p style="margin-bottom:14px;">Update name or email. Code cannot be changed.</p>
+      <label>Code</label>
+      <input id="esCode" type="text" disabled style="opacity:.6;">
+      <label>Name</label>
+      <input id="esName" type="text">
+      <label>Email</label>
+      <input id="esEmail" type="email">
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="modal-cancel" onclick="closeEditStudent()">Cancel</button>
+        <button class="modal-confirm"
+          style="background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#030710;"
+          onclick="saveEditStudent()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT TASK -->
+  <div id="editTaskModal" class="modal-back">
+    <div class="modal">
+      <div class="m-icon" style="background:rgba(124,92,255,0.12);border-color:rgba(124,92,255,0.4);">✏️</div>
+      <h4>Edit Task</h4>
+      <p style="margin-bottom:14px;">Update task details.</p>
+      <label>Task Name</label>
+      <input id="etName" type="text">
+      <label>Video Link</label>
+      <input id="etLink" type="text">
+      <div class="grid2">
+        <div>
+          <label>Max Points</label>
+          <input id="etMax" type="text" inputmode="numeric">
+        </div>
+        <div>
+          <label>Due Date</label>
+          <input id="etDue" type="date">
+        </div>
+      </div>
+      <label>Assign To</label>
+      <select id="etAssign">
+        <option value="ALL">All Students</option>
+      </select>
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="modal-cancel" onclick="closeEditTask()">Cancel</button>
+        <button class="modal-confirm"
+          style="background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#030710;"
+          onclick="saveEditTask()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV IMPORT -->
+  <div id="csvModal" class="modal-back">
+    <div class="modal">
+      <div class="m-icon" style="background:rgba(74,217,228,0.12);border-color:rgba(74,217,228,0.4);">📥</div>
+      <h4>Bulk Import Students</h4>
+      <p style="margin-bottom:14px;">Paste CSV data or upload file. Format: <code
+          style="color:var(--neon);">code, name, email</code></p>
+      <label>Paste CSV</label>
+      <textarea id="csvText" rows="8" style="font-family:'Courier New',monospace;font-size:12.5px;"
+        placeholder="K7NQ4X2M, Aarav Sharma, aarav@email.com&#10;P9WR5TZ3, Priya Verma, priya@email.com"></textarea>
+      <label>Or upload file</label>
+      <input id="csvFile" type="file" accept=".csv,.txt" onchange="handleCsvFile(event)">
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="modal-cancel" onclick="closeCsvImport()">Cancel</button>
+        <button class="modal-confirm"
+          style="background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#030710;"
+          onclick="submitCsvImport()">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANNOUNCEMENT -->
+  <div id="announceModal" class="modal-back">
+    <div class="modal">
+      <div class="m-icon" style="background:rgba(255,209,102,0.12);border-color:rgba(255,209,102,0.4);">📢</div>
+      <h4>Announcement</h4>
+      <p style="margin-bottom:14px;">Ye message sabhi students ko unke dashboard pe dikhega.</p>
+      <label>Message</label>
+      <textarea id="announceInput" rows="4" placeholder="e.g. Kal test hai, chapter 5 revise karo!"></textarea>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
+        <input type="checkbox" id="announceActive" style="width:auto;accent-color:var(--neon);">
+        Show to students
+      </label>
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="modal-cancel" onclick="closeAnnounceModal()">Cancel</button>
+        <button class="modal-confirm"
+          style="background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#030710;"
+          onclick="saveAnnouncement()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BACKUP -->
+  <div id="backupModal" class="modal-back">
+    <div class="modal">
+      <div class="m-icon" style="background:rgba(110,231,160,0.12);border-color:rgba(110,231,160,0.4);">💾</div>
+      <h4>Backup / Restore</h4>
+      <p style="margin-bottom:14px;">Poora data JSON mein save karo ya restore karo.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        <button class="btn-ghost" onclick="downloadBackup()">⬇ Download Backup</button>
+        <button class="btn-ghost" onclick="triggerRestore()">⬆ Restore from File</button>
+        <button class="btn-ghost" onclick="openResetScores()"
+          style="color:var(--danger);border-color:rgba(255,77,106,0.4);">⚠️ Reset Scores</button>
+      </div>
+      <input id="restoreFile" type="file" accept=".json" style="display:none;" onchange="handleRestoreFile(event)">
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeBackupModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANGE PASSWORD -->
+  <div id="changePwModal" class="modal-back">
+    <div class="modal">
+      <div class="m-icon" style="background:rgba(124,92,255,0.12);border-color:rgba(124,92,255,0.4);">🔑</div>
+      <h4>Change Admin Password</h4>
+      <p style="margin-bottom:14px;">Naya password kam se kam 8 characters ka hona chahiye.</p>
+      <label>Current Password</label>
+      <input id="cpCurrent" type="password">
+      <label>New Password</label>
+      <input id="cpNew" type="password">
+      <label>Confirm New Password</label>
+      <input id="cpConfirm" type="password">
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="modal-cancel" onclick="closeChangePw()">Cancel</button>
+        <button class="modal-confirm"
+          style="background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#030710;"
+          onclick="submitChangePw()">Change</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR -->
+  <div id="qrModal" class="modal-back">
+    <div class="modal" style="text-align:center;">
+      <h4 style="margin-bottom:14px;">Student QR Code</h4>
+      <p id="qrName"
+        style="color:var(--neon);font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:1.5px;margin-bottom:14px;">
+        —</p>
+      <div style="background:#fff;padding:16px;border-radius:12px;display:inline-block;">
+        <img id="qrImage" src="" alt="QR" style="width:220px;height:220px;display:block;">
+      </div>
+      <p id="qrCode"
+        style="font-family:'Orbitron',monospace;font-size:14px;letter-spacing:3px;color:var(--neon);margin-top:14px;">—
+      </p>
+      <div class="modal-actions" style="margin-top:20px;justify-content:center;">
+        <button class="modal-cancel" onclick="closeQrModal()">Close</button>
+        <button class="modal-confirm"
+          style="background:linear-gradient(135deg,var(--neon),var(--neon-2));color:#030710;" onclick="printQr()">🖨️
+          Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMAND PALETTE -->
+  <div id="cmdPalette" class="modal-back">
+    <div class="modal" style="max-width:520px;padding:0;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+        <input id="cmdInput" type="text" placeholder="Type a command… (e.g. 'add student', 'reset')"
+          style="border:none;background:transparent;font-size:15px;padding:0;" autocomplete="off">
+      </div>
+      <div id="cmdResults" style="max-height:340px;overflow-y:auto;padding:8px;"></div>
     </div>
   </div>
 

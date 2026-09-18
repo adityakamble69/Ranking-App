@@ -1,5 +1,5 @@
 /*******************************************************
- * SHARED CONFIG + API HELPER
+ * SHARED CONFIG + API HELPER — v2 (robust)
  *******************************************************/
 const API_URL = "https://script.google.com/macros/s/AKfycbwK1CBHWNDO0MXyoapwtzR0X-Mlb6vuaWPwcajI8SAZWpU9mI7-qy8P0-noa34Ljn79EQ/exec";
 
@@ -10,9 +10,7 @@ async function callApi(action, payload) {
   if (!API_URL || API_URL.indexOf('PASTE_YOUR') !== -1) {
     return { success: false, message: "API_URL not set yet — paste your deployed Web App URL into script.js" };
   }
-
   const body = JSON.stringify({ action: action, payload: payload || {} });
-
   try {
     const res = await fetchWithTimeout(API_URL, { method: "POST", body: body, redirect: "follow" }, API_TIMEOUT_MS);
     if (!res.ok) return { success: false, message: "Server returned " + res.status + ". Please try again." };
@@ -24,7 +22,9 @@ async function callApi(action, payload) {
     if (typeof data !== 'object' || data === null) return { success: false, message: "Unexpected response." };
     return data;
   } catch (err) {
-    const writeActions = ['assignPoints','addStudent','addTask','deleteStudent','deleteTask'];
+    const writeActions = ['assignPoints','addStudent','addTask','deleteStudent','deleteTask',
+                          'updateStudent','updateTask','bulkAddStudents','restoreBackup',
+                          'resetScores','changeAdminPassword','setAnnouncement','duplicateTask'];
     if (API_RETRY_ONCE && isNetworkError(err) && writeActions.indexOf(action) === -1) {
       await sleep(800);
       return callApiOnce(body);
