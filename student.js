@@ -1,5 +1,15 @@
 // Student page logic — uses callApi() from script.js
 
+/* ===== Loading screen control ===== */
+function showLoader(){ document.getElementById('loader').classList.remove('hide'); }
+function hideLoader(){ document.getElementById('loader').classList.add('hide'); }
+
+/* Hide loader once page + API first-ready */
+window.addEventListener('load', function(){
+  // Small delay so animation is visible even on fast connections
+  setTimeout(hideLoader, 400);
+});
+
 async function doLogin(){
   var code = document.getElementById('codeInput').value.trim();
   var err = document.getElementById('loginError');
@@ -7,9 +17,11 @@ async function doLogin(){
   err.textContent = '';
   if(!code){ err.textContent = 'Please enter your code.'; return; }
 
-  var res = await withLoading(btn, 'Checking...', function(){
+  showLoader();
+  var res = await withLoading(btn, 'Connecting…', function(){
     return callApi('verifyStudent', { code: code });
   });
+  hideLoader();
 
   if(!res.success){ err.textContent = res.message || 'Something went wrong.'; return; }
   sessionStorage.setItem('studentCode', code);
@@ -44,7 +56,7 @@ function renderDashboard(res){
     row.innerHTML =
       '<div style="min-width:0;">' +
         '<div class="t-name">' + escapeHtml(t.taskName) + '</div>' +
-        (t.videoLink ? '<a class="t-link" href="' + escapeHtml(t.videoLink) + '" target="_blank" rel="noopener">Watch video →</a>' : '') +
+        (t.videoLink ? '<a class="t-link" href="' + escapeHtml(t.videoLink) + '" target="_blank" rel="noopener">▶ Watch</a>' : '') +
       '</div>' +
       '<div class="t-pts">' + t.points + ' / ' + t.maxPoints + '</div>';
     taskList.appendChild(row);
@@ -69,7 +81,7 @@ function renderLeaderboard(list, myCode){
     row.innerHTML =
       rankBadgeHtml(s.rank) +
       '<div class="lb-name">' + escapeHtml(s.name) + '</div>' +
-      '<div class="lb-pts">' + s.totalPoints + ' pts</div>';
+      '<div class="lb-pts">' + s.totalPoints + ' PTS</div>';
     box.appendChild(row);
   });
 }
@@ -91,10 +103,13 @@ function escapeHtml(str){
   return d.innerHTML;
 }
 
+/* Auto-login if session exists */
 window.addEventListener('load', async function(){
   var saved = sessionStorage.getItem('studentCode');
   if(saved){
+    showLoader();
     var res = await callApi('verifyStudent', { code: saved });
+    hideLoader();
     if(res.success) renderDashboard(res);
   }
   document.getElementById('codeInput').addEventListener('keydown', function(e){

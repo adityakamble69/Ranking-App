@@ -3,25 +3,28 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Admin · Learning Task Ranking</title>
+  <title>Admin · Learning Arena</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
-      --bg: #0a0c17;
-      --surface: rgba(255, 255, 255, 0.045);
-      --border: rgba(255, 255, 255, 0.09);
-      --border-strong: rgba(255, 255, 255, 0.16);
-      --text: #eef0fa;
-      --text-2: #b6bad0;
-      --muted: #7d84a3;
-      --accent: #7c5cff;
-      --accent-2: #4ad9e4;
+      --bg: #04060f;
+      --surface: rgba(10, 16, 30, 0.72);
+      --surface-2: rgba(20, 28, 50, 0.6);
+      --border: rgba(80, 200, 255, 0.18);
+      --border-strong: rgba(80, 220, 255, 0.55);
+      --text: #e8f4ff;
+      --text-2: #a8bcd8;
+      --muted: #6b7a99;
+      --neon: #4ad9e4;
+      --neon-2: #7c5cff;
       --gold: #ffd166;
-      --silver: #cbd5e1;
-      --bronze: #e0a56f;
-      --danger: #ff6b81;
+      --danger: #ff4d6a;
       --radius: 14px;
-      --radius-sm: 10px;
     }
 
     * {
@@ -35,22 +38,157 @@
 
     body {
       margin: 0;
-      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background:
-        radial-gradient(1200px 600px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 55%),
-        radial-gradient(900px 500px at 100% 0%, rgba(74, 217, 228, 0.12), transparent 55%),
-        var(--bg);
+      min-height: 100vh;
+      font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
       color: var(--text);
+      background:
+        linear-gradient(rgba(4, 8, 20, 0.82), rgba(4, 8, 20, 0.92)),
+        url('bg.jpg') center/cover no-repeat fixed;
       padding: 28px 18px 72px;
       -webkit-font-smoothing: antialiased;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background:
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 3px),
+        radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+      mix-blend-mode: overlay;
     }
 
     .wrap {
-      max-width: 820px;
+      max-width: 860px;
       margin: 0 auto;
+      position: relative;
+      z-index: 2;
     }
 
-    /* Header */
+    /* ========= LOADING SCREEN ========= */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(124, 92, 255, 0.14), transparent 55%),
+        rgba(3, 5, 14, 0.96);
+      backdrop-filter: blur(8px);
+      transition: opacity .55s ease, visibility .55s ease;
+    }
+
+    #loader.hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-emblem {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: floatY 2.6s ease-in-out infinite;
+    }
+
+    @keyframes floatY {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-9px);
+      }
+    }
+
+    .loader-emblem::before,
+    .loader-emblem::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 24px;
+      border: 2px solid transparent;
+    }
+
+    .loader-emblem::before {
+      border-top-color: var(--neon-2);
+      border-right-color: var(--neon);
+      animation: spin 1.4s linear infinite;
+    }
+
+    .loader-emblem::after {
+      inset: 16px;
+      border-bottom-color: var(--neon-2);
+      border-left-color: var(--neon);
+      animation: spin 1.8s linear infinite reverse;
+    }
+
+    .loader-emblem span {
+      font-size: 38px;
+      filter: drop-shadow(0 0 18px rgba(124, 92, 255, 0.7));
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loader-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      letter-spacing: 6px;
+      font-weight: 700;
+      color: var(--neon-2);
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(124, 92, 255, 0.8);
+    }
+
+    .loader-bar {
+      width: 240px;
+      height: 3px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .loader-bar::after {
+      content: "";
+      position: absolute;
+      left: -40%;
+      top: 0;
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, transparent, var(--neon-2), var(--neon), transparent);
+      animation: slide 1.2s ease-in-out infinite;
+      box-shadow: 0 0 12px var(--neon-2);
+    }
+
+    @keyframes slide {
+      0% {
+        left: -40%;
+      }
+
+      100% {
+        left: 100%;
+      }
+    }
+
+    /* ========= HEADER ========= */
     .top {
       display: flex;
       align-items: center;
@@ -62,140 +200,201 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
     .brand .logo {
-      width: 42px;
-      height: 42px;
+      width: 48px;
+      height: 48px;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      font-size: 20px;
-      box-shadow: 0 8px 24px rgba(124, 92, 255, 0.35);
+      background: linear-gradient(135deg, var(--neon-2), var(--neon));
+      font-size: 22px;
+      box-shadow: 0 0 24px rgba(124, 92, 255, 0.55);
     }
 
     .brand h1 {
       margin: 0;
-      font-size: 17px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 15px;
       font-weight: 700;
-      letter-spacing: -0.2px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, var(--neon), var(--neon-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
     .brand p {
-      margin: 2px 0 0;
-      font-size: 12px;
+      margin: 4px 0 0;
+      font-size: 11px;
       color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 600;
     }
 
     .logout-top {
       background: transparent;
       color: var(--muted);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
       border: 1px solid var(--border);
-      padding: 8px 14px;
-      border-radius: 9px;
-      font-size: 12px;
-      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: color .15s, border-color .15s;
+      transition: color .15s, border-color .15s, box-shadow .15s;
     }
 
     .logout-top:hover {
-      color: var(--text);
-      border-color: var(--border-strong);
+      color: var(--neon);
+      border-color: var(--neon);
+      box-shadow: 0 0 14px rgba(74, 217, 228, 0.35);
     }
 
-    /* Glass card */
+    /* ========= CARD ========= */
     .card {
+      position: relative;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-      padding: 24px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 26px 24px;
       margin-bottom: 18px;
+      overflow: hidden;
     }
 
-    /* Login */
+    .card::before,
+    .card::after {
+      content: "";
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      pointer-events: none;
+      border-color: var(--neon);
+      opacity: 0.7;
+    }
+
+    .card::before {
+      top: 6px;
+      left: 6px;
+      border-top: 2px solid;
+      border-left: 2px solid;
+    }
+
+    .card::after {
+      bottom: 6px;
+      right: 6px;
+      border-bottom: 2px solid;
+      border-right: 2px solid;
+    }
+
+    /* ========= LOGIN ========= */
     .login-card {
-      max-width: 400px;
+      max-width: 420px;
       margin: 80px auto 0;
     }
 
     .login-card h2 {
       margin: 0 0 6px;
-      font-size: 19px;
-      letter-spacing: -0.2px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
     }
 
     .login-card p {
-      margin: 0 0 20px;
+      margin: 0 0 22px;
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.55;
+      line-height: 1.6;
     }
 
     .login-card .logo-lg {
-      width: 52px;
-      height: 52px;
+      width: 58px;
+      height: 58px;
       border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      font-size: 24px;
-      margin-bottom: 18px;
-      box-shadow: 0 10px 28px rgba(124, 92, 255, 0.35);
+      background: linear-gradient(135deg, var(--neon-2), var(--neon));
+      font-size: 26px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 26px rgba(124, 92, 255, 0.55);
+      animation: pulseGlow 2.5s ease-in-out infinite;
     }
 
-    /* Forms */
+    @keyframes pulseGlow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 26px rgba(124, 92, 255, 0.55);
+      }
+
+      50% {
+        box-shadow: 0 0 40px rgba(74, 217, 228, 0.7);
+      }
+    }
+
+    /* ========= FORM ELEMENTS ========= */
     input,
     select {
       width: 100%;
-      padding: 11px 13px;
-      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      border-radius: 10px;
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(6, 10, 22, 0.72);
       color: var(--text);
       font-size: 14px;
       outline: none;
-      font-family: inherit;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.4px;
       transition: border-color .18s, box-shadow .18s, background .18s;
     }
 
     input::placeholder {
-      color: #5b6080;
+      color: #4a5674;
+      font-weight: 500;
     }
 
     input:focus,
     select:focus {
-      border-color: var(--accent-2);
-      background: rgba(74, 217, 228, 0.04);
-      box-shadow: 0 0 0 3px rgba(74, 217, 228, 0.12);
+      border-color: var(--neon);
+      background: rgba(10, 20, 40, 0.85);
+      box-shadow: 0 0 0 3px rgba(74, 217, 228, 0.15), 0 0 22px rgba(74, 217, 228, 0.22);
     }
 
     select {
       appearance: none;
       -webkit-appearance: none;
-      background-image: linear-gradient(45deg, transparent 50%, #8b93b0 50%),
-        linear-gradient(135deg, #8b93b0 50%, transparent 50%);
+      background-image: linear-gradient(45deg, transparent 50%, #7c8dab 50%),
+        linear-gradient(135deg, #7c8dab 50%, transparent 50%);
       background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
       background-size: 5px 5px, 5px 5px;
       background-repeat: no-repeat;
-      padding-right: 34px;
+      padding-right: 36px;
+      cursor: pointer;
     }
 
     label {
       display: block;
-      font-size: 11px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      font-weight: 600;
-      margin: 14px 0 6px;
+      letter-spacing: 2.5px;
+      font-weight: 700;
+      margin: 16px 0 7px;
     }
 
     label:first-child {
@@ -206,7 +405,7 @@
       font-family: inherit;
       cursor: pointer;
       border: none;
-      transition: transform .12s, opacity .15s, background .15s;
+      transition: transform .12s, opacity .15s, box-shadow .2s, background .15s;
     }
 
     button:active {
@@ -214,16 +413,44 @@
     }
 
     .btn-primary {
+      position: relative;
       width: 100%;
-      margin-top: 16px;
-      padding: 12px 16px;
-      color: #0a0c17;
-      font-weight: 700;
-      font-size: 13.5px;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--accent-2), var(--accent));
-      letter-spacing: 0.2px;
-      box-shadow: 0 8px 24px rgba(124, 92, 255, 0.28);
+      margin-top: 18px;
+      padding: 13px 16px;
+      color: #030710;
+      font-weight: 800;
+      font-size: 12px;
+      border-radius: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, var(--neon), var(--neon-2));
+      box-shadow: 0 0 24px rgba(74, 217, 228, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+    }
+
+    .btn-primary::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -60%;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+      transform: skewX(-20deg);
+      animation: shine 3s ease-in-out infinite;
+    }
+
+    @keyframes shine {
+
+      0%,
+      100% {
+        left: -60%;
+      }
+
+      50% {
+        left: 120%;
+      }
     }
 
     .btn-primary:disabled {
@@ -232,73 +459,87 @@
     }
 
     .btn-small {
-      padding: 10px 16px;
-      color: #0a0c17;
-      font-weight: 700;
-      font-size: 13px;
-      border-radius: var(--radius-sm);
-      margin-top: 16px;
-      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      padding: 11px 18px;
+      color: #030710;
+      font-weight: 800;
+      font-size: 11.5px;
+      border-radius: 10px;
+      margin-top: 18px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, var(--neon), var(--neon-2));
+      box-shadow: 0 0 20px rgba(74, 217, 228, 0.45), inset 0 0 10px rgba(255, 255, 255, 0.15);
     }
 
     .btn-danger {
-      background: rgba(255, 107, 129, 0.10);
+      background: rgba(255, 77, 106, 0.10);
       color: var(--danger);
-      border: 1px solid rgba(255, 107, 129, 0.35);
-      padding: 6px 12px;
-      font-size: 11.5px;
-      font-weight: 600;
+      border: 1px solid rgba(255, 77, 106, 0.45);
+      padding: 7px 13px;
+      font-size: 11px;
+      font-weight: 700;
       border-radius: 8px;
-      letter-spacing: 0.2px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-family: 'Orbitron', sans-serif;
     }
 
     .btn-danger:hover {
-      background: rgba(255, 107, 129, 0.18);
+      background: rgba(255, 77, 106, 0.2);
+      box-shadow: 0 0 14px rgba(255, 77, 106, 0.4);
     }
 
     .error {
-      color: #ff9aa8;
+      color: #ff7c92;
       font-size: 12.5px;
       margin-top: 10px;
       min-height: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
     .ok {
-      color: #86efac;
+      color: #6ee7a0;
       font-size: 12.5px;
       margin-top: 10px;
       min-height: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
     .hidden {
       display: none !important;
     }
 
-    /* Tabs */
+    /* ========= TABS ========= */
     .tabs {
       display: flex;
       gap: 6px;
-      margin-bottom: 16px;
-      background: rgba(255, 255, 255, 0.03);
+      margin-bottom: 18px;
+      background: rgba(6, 10, 22, 0.7);
       border: 1px solid var(--border);
-      padding: 5px;
+      padding: 6px;
       border-radius: 12px;
       overflow-x: auto;
+      backdrop-filter: blur(12px);
     }
 
     .tab {
       flex: 1;
       text-align: center;
       white-space: nowrap;
-      padding: 10px 14px;
+      padding: 11px 14px;
       border-radius: 8px;
-      font-size: 12.5px;
-      font-weight: 600;
-      letter-spacing: 0.1px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
       color: var(--muted);
       cursor: pointer;
       user-select: none;
-      transition: color .15s, background .15s;
+      transition: color .15s, background .15s, box-shadow .15s;
     }
 
     .tab:hover {
@@ -306,18 +547,21 @@
     }
 
     .tab.active {
-      color: #0a0c17;
-      background: linear-gradient(135deg, var(--accent-2), var(--accent));
-      box-shadow: 0 4px 12px rgba(124, 92, 255, 0.28);
+      color: #030710;
+      background: linear-gradient(135deg, var(--neon), var(--neon-2));
+      box-shadow: 0 0 18px rgba(74, 217, 228, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.15);
     }
 
-    /* Headings */
+    /* ========= HEADINGS ========= */
     h3 {
-      margin: 0 0 16px;
-      font-size: 14.5px;
+      margin: 0 0 18px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: -0.1px;
-      color: var(--text);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--neon);
+      text-shadow: 0 0 12px rgba(74, 217, 228, 0.4);
     }
 
     .section-h {
@@ -332,44 +576,47 @@
     }
 
     .count-pill {
-      font-size: 11px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
       font-weight: 700;
-      color: var(--muted);
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      padding: 3px 9px;
+      color: var(--neon);
+      background: rgba(74, 217, 228, 0.1);
+      border: 1px solid rgba(74, 217, 228, 0.4);
+      padding: 4px 11px;
       border-radius: 999px;
-      letter-spacing: 0.4px;
+      letter-spacing: 1.5px;
+      box-shadow: 0 0 10px rgba(74, 217, 228, 0.25);
     }
 
-    /* Rows */
+    /* ========= ROWS ========= */
     .row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       padding: 12px 14px;
-      border-radius: 12px;
+      border-radius: 10px;
       margin-bottom: 7px;
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.025);
-      transition: background .15s, border-color .15s;
+      background: var(--surface-2);
+      transition: background .15s, border-color .15s, transform .15s;
     }
 
     .row:hover {
-      background: rgba(255, 255, 255, 0.045);
+      background: rgba(30, 42, 70, 0.7);
       border-color: var(--border-strong);
+      transform: translateX(2px);
     }
 
     .row.top-tier {
-      background: linear-gradient(90deg, rgba(124, 92, 255, 0.09), rgba(74, 217, 228, 0.05), transparent);
-      border-color: rgba(124, 92, 255, 0.22);
+      background: linear-gradient(90deg, rgba(124, 92, 255, 0.14), rgba(74, 217, 228, 0.06), transparent);
+      border-color: rgba(124, 92, 255, 0.35);
     }
 
     .row .main {
       font-size: 13.5px;
-      font-weight: 600;
-      letter-spacing: -0.05px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
     }
 
     .row .sub {
@@ -381,33 +628,34 @@
 
     .row .sub .dot {
       opacity: .5;
-      margin: 0 5px;
+      margin: 0 6px;
     }
 
-    /* Rank badges */
+    /* ========= RANK BADGES ========= */
     .rank-badge {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-family: 'Orbitron', sans-serif;
       font-weight: 800;
-      font-size: 12.5px;
-      background: rgba(255, 255, 255, 0.06);
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text-2);
       flex-shrink: 0;
       border: 1px solid var(--border);
     }
 
     .rank-badge.img {
-      width: 48px;
-      height: 48px;
+      width: 52px;
+      height: 52px;
       border-radius: 0;
       background: none;
       border: none;
-      filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
-      animation: badgePop .55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      filter: drop-shadow(0 6px 16px rgba(74, 217, 228, 0.5));
+      animation: badgePop .6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
 
     .rank-badge.img img {
@@ -420,7 +668,7 @@
     @keyframes badgePop {
       from {
         opacity: 0;
-        transform: scale(0.55) rotate(-10deg);
+        transform: scale(0.4) rotate(-14deg);
       }
 
       to {
@@ -430,11 +678,13 @@
     }
 
     .pts {
-      font-weight: 800;
-      color: var(--accent-2);
-      font-size: 13.5px;
-      letter-spacing: -0.1px;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      color: var(--neon);
+      font-size: 12.5px;
+      letter-spacing: 0.5px;
       white-space: nowrap;
+      text-shadow: 0 0 10px rgba(74, 217, 228, 0.5);
     }
 
     .empty {
@@ -443,8 +693,9 @@
       text-align: center;
       padding: 22px;
       border: 1px dashed var(--border);
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.015);
+      border-radius: 10px;
+      background: rgba(10, 16, 30, 0.4);
+      letter-spacing: 1px;
     }
 
     .grid2 {
@@ -459,12 +710,12 @@
       }
     }
 
-    /* Assignment block */
+    /* ========= ASSIGNMENT BLOCK ========= */
     .assign-block {
-      margin-top: 14px;
-      padding: 14px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.025);
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 10px;
+      background: rgba(6, 10, 22, 0.6);
       border: 1px solid var(--border);
     }
 
@@ -478,14 +729,17 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 14px;
-      border-radius: 10px;
+      padding: 10px 15px;
+      border-radius: 8px;
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(10, 16, 30, 0.5);
       cursor: pointer;
-      font-size: 12.5px;
-      font-weight: 600;
+      font-size: 11.5px;
+      font-weight: 700;
       color: var(--text-2);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: 'Orbitron', sans-serif;
       transition: all .15s;
     }
 
@@ -496,31 +750,32 @@
     .radio-opt input {
       width: auto;
       margin: 0;
-      accent-color: var(--accent);
+      accent-color: var(--neon);
       cursor: pointer;
     }
 
     .radio-opt.checked {
-      border-color: var(--accent);
-      background: rgba(124, 92, 255, 0.10);
+      border-color: var(--neon);
+      background: rgba(74, 217, 228, 0.10);
       color: var(--text);
+      box-shadow: 0 0 14px rgba(74, 217, 228, 0.3);
     }
 
     .student-picker {
       margin-top: 12px;
-      max-height: 220px;
+      max-height: 230px;
       overflow-y: auto;
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 6px;
-      background: rgba(0, 0, 0, 0.15);
+      background: rgba(4, 8, 20, 0.6);
     }
 
     .pick-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 10px;
+      padding: 9px 11px;
       border-radius: 8px;
       font-size: 13px;
       cursor: pointer;
@@ -529,73 +784,94 @@
     }
 
     .pick-item:hover {
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(74, 217, 228, 0.06);
     }
 
     .pick-item input {
       width: auto;
       margin: 0;
-      accent-color: var(--accent);
+      accent-color: var(--neon);
       cursor: pointer;
     }
 
     .pick-item .name {
       flex: 1;
       color: var(--text);
+      font-weight: 600;
     }
 
     .pick-item .code {
-      font-family: 'Courier New', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.5px;
-      background: rgba(255, 255, 255, 0.04);
-      padding: 2px 7px;
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      color: var(--neon);
+      letter-spacing: 1.5px;
+      background: rgba(74, 217, 228, 0.08);
+      padding: 3px 8px;
       border-radius: 6px;
+      border: 1px solid rgba(74, 217, 228, 0.25);
     }
 
-    /* Assignee chips */
+    /* ========= CHIPS ========= */
     .chip {
       display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 9px;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 4px 10px;
       border-radius: 999px;
       background: rgba(124, 92, 255, 0.14);
       color: #c7bcff;
-      border: 1px solid rgba(124, 92, 255, 0.25);
+      border: 1px solid rgba(124, 92, 255, 0.35);
       margin-right: 4px;
       margin-top: 4px;
+      letter-spacing: 0.8px;
     }
 
     .chip.all {
-      background: rgba(74, 217, 228, 0.12);
+      background: rgba(74, 217, 228, 0.1);
       color: #a5eef6;
-      border-color: rgba(74, 217, 228, 0.28);
+      border-color: rgba(74, 217, 228, 0.4);
+      box-shadow: 0 0 10px rgba(74, 217, 228, 0.2);
     }
 
     .student-picker::-webkit-scrollbar {
       width: 8px;
     }
 
-    .student-picker::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.12);
+    .student-picker::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
       border-radius: 8px;
+    }
+
+    .student-picker::-webkit-scrollbar-thumb {
+      background: rgba(74, 217, 228, 0.35);
+      border-radius: 8px;
+    }
+
+    .student-picker::-webkit-scrollbar-thumb:hover {
+      background: rgba(74, 217, 228, 0.55);
     }
   </style>
 </head>
 
 <body>
+
+  <!-- ===== LOADING SCREEN ===== -->
+  <div id="loader">
+    <div class="loader-emblem"><span>⚙️</span></div>
+    <div class="loader-text">Initializing…</div>
+    <div class="loader-bar"></div>
+  </div>
+
   <div class="wrap">
 
     <!-- LOGIN -->
     <div id="loginView" class="card login-card">
       <div class="logo-lg">⚙️</div>
-      <h2>Admin sign in</h2>
-      <p>Enter the admin password from the Config sheet to manage students, tasks, and rankings.</p>
+      <h2>Admin Access</h2>
+      <p>Authenticate to manage students, tasks, and rankings.</p>
       <label for="pwInput">Password</label>
       <input id="pwInput" type="password" placeholder="••••••••" autocomplete="current-password">
-      <button class="btn-primary" id="loginBtn" onclick="doLogin()">Sign in</button>
+      <button class="btn-primary" id="loginBtn" onclick="doLogin()">Authenticate</button>
       <div class="error" id="loginError"></div>
     </div>
 
@@ -607,10 +883,10 @@
           <div class="logo">⚙️</div>
           <div>
             <h1>Admin Console</h1>
-            <p>Manage students, tasks &amp; rankings</p>
+            <p>Control Panel · v2.0</p>
           </div>
         </div>
-        <button class="logout-top" onclick="doLogout()">Sign out</button>
+        <button class="logout-top" onclick="doLogout()">Sign Out</button>
       </div>
 
       <div class="tabs">
@@ -622,43 +898,43 @@
 
       <!-- Ranking -->
       <div id="tab-rank" class="card">
-        <h3>Live leaderboard</h3>
+        <h3>Live Leaderboard</h3>
         <div id="lbList"></div>
       </div>
 
       <!-- Points -->
       <div id="tab-points" class="card hidden">
-        <h3>Assign / update points</h3>
+        <h3>Assign / Update Points</h3>
         <label>Student</label>
         <select id="pStudent"></select>
         <label>Task</label>
         <select id="pTask"></select>
         <label>Points</label>
         <input id="pPoints" type="text" inputmode="numeric" placeholder="e.g. 10">
-        <button class="btn-small" onclick="assignPoints()">Save points</button>
+        <button class="btn-small" onclick="assignPoints()">Save Points</button>
         <div class="ok" id="pointsMsg"></div>
       </div>
 
       <!-- Students -->
       <div id="tab-students" class="card hidden">
-        <h3>Add student</h3>
+        <h3>Register New Student</h3>
         <div class="grid2">
           <div>
             <label>Code</label>
             <input id="sCode" type="text" placeholder="e.g. STU042">
           </div>
           <div>
-            <label>Full name</label>
+            <label>Full Name</label>
             <input id="sName" type="text" placeholder="e.g. Aarav Sharma">
           </div>
         </div>
-        <label>Email address</label>
+        <label>Email Address</label>
         <input id="sEmail" type="email" placeholder="student@email.com">
-        <button class="btn-small" onclick="addStudent()">Add student &amp; send code</button>
+        <button class="btn-small" onclick="addStudent()">Add &amp; Send Code</button>
         <div class="ok" id="studentMsg"></div>
 
         <div class="section-h">
-          <h3>All students</h3>
+          <h3>All Students</h3>
           <span class="count-pill" id="studentCount">0</span>
         </div>
         <div id="studentList"></div>
@@ -666,34 +942,34 @@
 
       <!-- Tasks -->
       <div id="tab-tasks" class="card hidden">
-        <h3>Create task</h3>
-        <label>Task name</label>
+        <h3>Create New Task</h3>
+        <label>Task Name</label>
         <input id="tName" type="text" placeholder="e.g. Watch: Intro to Arrays">
-        <label>Video link (optional)</label>
+        <label>Video Link (optional)</label>
         <input id="tLink" type="text" placeholder="https://...">
-        <label>Max points</label>
+        <label>Max Points</label>
         <input id="tMax" type="text" inputmode="numeric" placeholder="e.g. 10">
 
         <div class="assign-block">
-          <label style="margin-top:0;">Assign to</label>
+          <label style="margin-top:0;">Assign To</label>
           <div class="radio-group">
             <label class="radio-opt checked" id="optAll">
               <input type="radio" name="assignMode" value="all" checked onchange="toggleAssignMode()">
-              All students
+              All Students
             </label>
             <label class="radio-opt" id="optSpecific">
               <input type="radio" name="assignMode" value="specific" onchange="toggleAssignMode()">
-              Specific students
+              Specific Students
             </label>
           </div>
           <div id="studentPickList" class="student-picker hidden"></div>
         </div>
 
-        <button class="btn-small" onclick="addTask()">Create task</button>
+        <button class="btn-small" onclick="addTask()">Create Task</button>
         <div class="ok" id="taskMsg"></div>
 
         <div class="section-h">
-          <h3>All tasks</h3>
+          <h3>All Tasks</h3>
           <span class="count-pill" id="taskCount">0</span>
         </div>
         <div id="taskList"></div>
