@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Learning Task Ranking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg: #0a0c17;
+      --surface: rgba(255, 255, 255, 0.045);
+      --border: rgba(255, 255, 255, 0.09);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text: #eef0fa;
+      --text-2: #b6bad0;
+      --muted: #7d84a3;
+      --accent: #7c5cff;
+      --accent-2: #4ad9e4;
+      --gold: #ffd166;
+      --silver: #cbd5e1;
+      --bronze: #e0a56f;
+      --radius: 14px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(1100px 500px at 15% -5%, rgba(124, 92, 255, 0.20), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(74, 217, 228, 0.14), transparent 55%),
+        radial-gradient(700px 500px at 50% 110%, rgba(124, 92, 255, 0.12), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      padding: 32px 16px 72px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 580px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .hero .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      font-size: 26px;
+      box-shadow: 0 12px 32px rgba(124, 92, 255, 0.35);
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      line-height: 1.2;
+      background: linear-gradient(90deg, #ffffff, #c7bcff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      padding: 24px;
+      margin-bottom: 16px;
+      animation: fadeUp .45s ease both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .login-card {
+      max-width: 400px;
+      margin: 40px auto 0;
+    }
+
+    .login-card h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      letter-spacing: -0.2px;
+    }
+
+    .login-card p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    input[type=text] {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      font-size: 15px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      outline: none;
+      font-family: inherit;
+      transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+
+    input[type=text]::placeholder {
+      text-transform: none;
+      letter-spacing: 0.3px;
+      color: #5b6080;
+    }
+
+    input[type=text]:focus {
+      border-color: var(--accent-2);
+      background: rgba(74, 217, 228, 0.04);
+      box-shadow: 0 0 0 3px rgba(74, 217, 228, 0.14);
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      transition: transform .12s, opacity .15s;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      width: 100%;
+      margin-top: 16px;
+      padding: 13px;
+      color: #0a0c17;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      letter-spacing: 0.2px;
+      box-shadow: 0 8px 24px rgba(124, 92, 255, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .error {
+      color: #ff9aa8;
+      font-size: 12.5px;
+      margin-top: 10px;
+      min-height: 16px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .profile {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .profile .left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      font-weight: 800;
+      font-size: 20px;
+      color: #0a0c17;
+      box-shadow: 0 8px 24px rgba(124, 92, 255, 0.3);
+    }
+
+    .profile .name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .profile .code {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 3px;
+      letter-spacing: 0.6px;
+    }
+
+    .stat {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .stat .num {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      background: linear-gradient(90deg, var(--accent-2), var(--gold));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1;
+    }
+
+    .stat .label {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 1.2px;
+      margin-top: 6px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .section-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+      margin: 28px 4px 12px;
+    }
+
+    .task-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      transition: border-color .15s, background .15s;
+    }
+
+    .task-row:hover {
+      border-color: var(--border-strong);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .task-row .t-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.05px;
+    }
+
+    .task-row .t-link {
+      display: inline-block;
+      font-size: 11.5px;
+      color: var(--accent-2);
+      text-decoration: none;
+      margin-top: 5px;
+      font-weight: 600;
+    }
+
+    .task-row .t-link:hover {
+      text-decoration: underline;
+    }
+
+    .task-row .t-pts {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(124, 92, 255, 0.16);
+      color: #c7bcff;
+      white-space: nowrap;
+      letter-spacing: 0.1px;
+      border: 1px solid rgba(124, 92, 255, 0.24);
+    }
+
+    .task-row.done .t-pts {
+      background: rgba(74, 217, 228, 0.16);
+      color: #a5eef6;
+      border-color: rgba(74, 217, 228, 0.28);
+    }
+
+    /* Leaderboard */
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 7px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.025);
+      transition: border-color .15s, background .15s;
+    }
+
+    .lb-row.me {
+      border-color: var(--accent-2);
+      background: rgba(74, 217, 228, 0.06);
+      box-shadow: 0 0 0 1px var(--accent-2), 0 0 22px rgba(74, 217, 228, 0.18);
+    }
+
+    .lb-row.top-tier {
+      background: linear-gradient(90deg, rgba(124, 92, 255, 0.09), rgba(74, 217, 228, 0.05), transparent);
+      border-color: rgba(124, 92, 255, 0.22);
+    }
+
+    .lb-name {
+      flex: 1;
+      font-size: 13.5px;
+      font-weight: 600;
+      min-width: 0;
+    }
+
+    .lb-pts {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--accent-2);
+      letter-spacing: -0.1px;
+    }
+
+    /* Rank badges */
+    .rank-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 12.5px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+
+    .rank-badge.img {
+      width: 48px;
+      height: 48px;
+      border-radius: 0;
+      background: none;
+      border: none;
+      filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+      animation: badgePop .55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .rank-badge.img img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    @keyframes badgePop {
+      from {
+        opacity: 0;
+        transform: scale(0.55) rotate(-10deg);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 12.5px;
+      text-align: center;
+      padding: 22px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .logout {
+      display: block;
+      margin: 28px auto 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      padding: 9px 18px;
+      border-radius: 10px;
+      transition: color .15s, border-color .15s;
+    }
+
+    .logout:hover {
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="badge">🏆</div>
+      <h1>Learning Task Ranking</h1>
+      <p>Complete your tasks. Climb the leaderboard.</p>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="loginView" class="card login-card">
+      <h2>Enter your code</h2>
+      <p>Use the unique code your teacher sent to your email.</p>
+      <input id="codeInput" type="text" placeholder="e.g. STU042" autocomplete="off" spellcheck="false">
+      <button class="btn-primary" id="loginBtn" onclick="doLogin()">View my ranking</button>
+      <div class="error" id="loginError"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashView" class="hidden">
+      <div class="card">
+        <div class="profile">
+          <div class="left">
+            <div class="avatar" id="avatarLetter">?</div>
+            <div style="min-width:0;">
+              <div class="name" id="studentName">—</div>
+              <div class="code" id="studentCode">—</div>
+            </div>
+          </div>
+          <div class="stat">
+            <div class="num" id="totalPoints">0</div>
+            <div class="label">Points</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">Your tasks</div>
+      <div id="taskList"></div>
+
+      <div class="section-title">Leaderboard</div>
+      <div id="leaderboardList"></div>
+
+      <button class="logout" onclick="doLogout()">Log out</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="student.js"></script>
+</body>
+
+</html>
