@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
   <meta charset="utf-8">
@@ -12,7 +12,8 @@
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap"
     rel="stylesheet">
   <style>
-    :root {
+    :root,
+    [data-theme="dark"] {
       --bg: #04060f;
       --surface: rgba(10, 16, 30, 0.72);
       --surface-2: rgba(20, 28, 50, 0.6);
@@ -25,7 +26,26 @@
       --neon-2: #7c5cff;
       --gold: #ffd166;
       --danger: #ff4d6a;
+      --bg-overlay: rgba(4, 8, 20, 0.82);
+      --scanline: rgba(255, 255, 255, 0.02);
       --radius: 14px;
+    }
+
+    [data-theme="light"] {
+      --bg: #eef3fa;
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-2: rgba(240, 245, 252, 0.9);
+      --border: rgba(60, 90, 180, 0.18);
+      --border-strong: rgba(60, 120, 220, 0.5);
+      --text: #0c1a2e;
+      --text-2: #3a4a68;
+      --muted: #6b7a99;
+      --neon: #0891a8;
+      --neon-2: #6d3fe0;
+      --gold: #c99400;
+      --danger: #d63048;
+      --bg-overlay: rgba(230, 238, 250, 0.85);
+      --scanline: rgba(0, 0, 0, 0.015);
     }
 
     * {
@@ -43,12 +63,14 @@
       font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
       color: var(--text);
       background:
-        linear-gradient(rgba(4, 8, 20, 0.82), rgba(4, 8, 20, 0.92)),
-        url('bg.jpg') center/cover no-repeat fixed;
+        linear-gradient(var(--bg-overlay), var(--bg-overlay)),
+        url('bg.jpg') center/cover no-repeat fixed,
+        var(--bg);
       padding: 28px 18px 72px;
       -webkit-font-smoothing: antialiased;
       position: relative;
       overflow-x: hidden;
+      transition: background-color .4s, color .3s;
     }
 
     body::before {
@@ -58,9 +80,17 @@
       pointer-events: none;
       z-index: 1;
       background:
-        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 3px),
-        radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+        repeating-linear-gradient(0deg, var(--scanline) 0px, var(--scanline) 1px, transparent 1px, transparent 3px),
+        radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
       mix-blend-mode: overlay;
+    }
+
+    #particles-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .65;
     }
 
     .wrap {
@@ -70,6 +100,41 @@
       z-index: 2;
     }
 
+    /* ========= TOOLBAR ========= */
+    .toolbar {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 100;
+      display: flex;
+      gap: 8px;
+    }
+
+    .tool-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .18s;
+      font-family: inherit;
+    }
+
+    .tool-btn:hover {
+      border-color: var(--neon);
+      box-shadow: 0 0 14px rgba(74, 217, 228, 0.35);
+      transform: translateY(-1px);
+    }
+
+    /* ========= LOADER ========= */
     #loader {
       position: fixed;
       inset: 0;
@@ -188,6 +253,7 @@
       }
     }
 
+    /* ========= HEADER ========= */
     .top {
       display: flex;
       align-items: center;
@@ -227,6 +293,12 @@
       color: transparent;
     }
 
+    [data-theme="light"] .brand h1 {
+      background: linear-gradient(90deg, var(--neon), var(--neon-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
     .brand p {
       margin: 4px 0 0;
       font-size: 11px;
@@ -248,7 +320,7 @@
       padding: 9px 16px;
       border-radius: 8px;
       cursor: pointer;
-      transition: color .15s, border-color .15s, box-shadow .15s;
+      transition: all .15s;
     }
 
     .logout-top:hover {
@@ -257,6 +329,7 @@
       box-shadow: 0 0 14px rgba(74, 217, 228, 0.35);
     }
 
+    /* ========= CARD ========= */
     .card {
       position: relative;
       background: var(--surface);
@@ -264,10 +337,16 @@
       border-radius: var(--radius);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       padding: 26px 24px;
       margin-bottom: 18px;
       overflow: hidden;
+      transition: transform .3s ease, box-shadow .3s ease;
+    }
+
+    .card.holo:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.45), 0 0 34px rgba(74, 217, 228, 0.15);
     }
 
     .card::before,
@@ -295,6 +374,7 @@
       border-right: 2px solid;
     }
 
+    /* ========= LOGIN ========= */
     .login-card {
       max-width: 420px;
       margin: 80px auto 0;
@@ -342,6 +422,7 @@
       }
     }
 
+    /* ========= FORM ELEMENTS ========= */
     input,
     select {
       width: 100%;
@@ -355,7 +436,12 @@
       font-family: 'Rajdhani', sans-serif;
       font-weight: 600;
       letter-spacing: 0.4px;
-      transition: border-color .18s, box-shadow .18s, background .18s;
+      transition: all .18s;
+    }
+
+    [data-theme="light"] input,
+    [data-theme="light"] select {
+      background: rgba(255, 255, 255, 0.9);
     }
 
     input::placeholder {
@@ -363,11 +449,20 @@
       font-weight: 500;
     }
 
+    [data-theme="light"] input::placeholder {
+      color: #8a99b8;
+    }
+
     input:focus,
     select:focus {
       border-color: var(--neon);
       background: rgba(10, 20, 40, 0.85);
       box-shadow: 0 0 0 3px rgba(74, 217, 228, 0.15), 0 0 22px rgba(74, 217, 228, 0.22);
+    }
+
+    [data-theme="light"] input:focus,
+    [data-theme="light"] select:focus {
+      background: rgba(255, 255, 255, 0.95);
     }
 
     select {
@@ -402,14 +497,33 @@
       cursor: pointer;
       border: none;
       transition: transform .12s, opacity .15s, box-shadow .2s, background .15s;
+      position: relative;
+      overflow: hidden;
     }
 
     button:active {
       transform: scale(0.98);
     }
 
+    .ripple {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+      transform: translate(-50%, -50%) scale(0);
+      pointer-events: none;
+      animation: rippleAnim .6s ease-out;
+    }
+
+    @keyframes rippleAnim {
+      to {
+        transform: translate(-50%, -50%) scale(20);
+        opacity: 0;
+      }
+    }
+
     .btn-primary {
-      position: relative;
       width: 100%;
       margin-top: 18px;
       padding: 13px 16px;
@@ -422,7 +536,6 @@
       font-family: 'Orbitron', sans-serif;
       background: linear-gradient(135deg, var(--neon), var(--neon-2));
       box-shadow: 0 0 24px rgba(74, 217, 228, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.15);
-      overflow: hidden;
     }
 
     .btn-primary::after {
@@ -452,6 +565,10 @@
     .btn-primary:disabled {
       opacity: .6;
       cursor: not-allowed;
+    }
+
+    .btn-primary:disabled::after {
+      animation: none;
     }
 
     .btn-small {
@@ -508,6 +625,7 @@
       display: none !important;
     }
 
+    /* ========= TABS ========= */
     .tabs {
       display: flex;
       gap: 6px;
@@ -518,6 +636,11 @@
       border-radius: 12px;
       overflow-x: auto;
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    [data-theme="light"] .tabs {
+      background: rgba(255, 255, 255, 0.6);
     }
 
     .tab {
@@ -534,7 +657,9 @@
       color: var(--muted);
       cursor: pointer;
       user-select: none;
-      transition: color .15s, background .15s, box-shadow .15s;
+      transition: all .15s;
+      position: relative;
+      overflow: hidden;
     }
 
     .tab:hover {
@@ -547,6 +672,7 @@
       box-shadow: 0 0 18px rgba(74, 217, 228, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.15);
     }
 
+    /* ========= HEADINGS ========= */
     h3 {
       margin: 0 0 18px;
       font-family: 'Orbitron', sans-serif;
@@ -582,6 +708,7 @@
       box-shadow: 0 0 10px rgba(74, 217, 228, 0.25);
     }
 
+    /* ========= ROWS ========= */
     .row {
       display: flex;
       align-items: center;
@@ -592,13 +719,17 @@
       margin-bottom: 7px;
       border: 1px solid var(--border);
       background: var(--surface-2);
-      transition: background .15s, border-color .15s, transform .15s;
+      transition: all .18s;
     }
 
     .row:hover {
       background: rgba(30, 42, 70, 0.7);
       border-color: var(--border-strong);
       transform: translateX(2px);
+    }
+
+    [data-theme="light"] .row:hover {
+      background: rgba(230, 238, 250, 0.95);
     }
 
     .row.top-tier {
@@ -624,6 +755,7 @@
       margin: 0 6px;
     }
 
+    /* ========= RANK BADGES ========= */
     .rank-badge {
       width: 34px;
       height: 34px;
@@ -638,6 +770,10 @@
       color: var(--text-2);
       flex-shrink: 0;
       border: 1px solid var(--border);
+    }
+
+    [data-theme="light"] .rank-badge {
+      background: rgba(0, 0, 0, 0.04);
     }
 
     .rank-badge.img {
@@ -690,6 +826,10 @@
       letter-spacing: 1px;
     }
 
+    [data-theme="light"] .empty {
+      background: rgba(240, 245, 252, 0.7);
+    }
+
     .grid2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -709,6 +849,10 @@
       border-radius: 10px;
       background: rgba(6, 10, 22, 0.6);
       border: 1px solid var(--border);
+    }
+
+    [data-theme="light"] .assign-block {
+      background: rgba(240, 245, 252, 0.7);
     }
 
     .assign-block>label {
@@ -740,6 +884,12 @@
       font-family: 'Orbitron', sans-serif;
       transition: all .15s;
       line-height: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    [data-theme="light"] .radio-opt {
+      background: rgba(255, 255, 255, 0.7);
     }
 
     .radio-opt:hover {
@@ -770,6 +920,10 @@
       border-radius: 10px;
       padding: 6px;
       background: rgba(4, 8, 20, 0.6);
+    }
+
+    [data-theme="light"] .student-picker {
+      background: rgba(255, 255, 255, 0.7);
     }
 
     .pick-item {
@@ -812,6 +966,7 @@
       border: 1px solid rgba(74, 217, 228, 0.25);
     }
 
+    /* ========= CHIPS ========= */
     .chip {
       display: inline-block;
       font-size: 10.5px;
@@ -850,10 +1005,78 @@
     .student-picker::-webkit-scrollbar-thumb:hover {
       background: rgba(74, 217, 228, 0.55);
     }
+
+    /* ========= TOAST ========= */
+    #toast-container {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9997;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      max-width: 92vw;
+    }
+
+    .toast {
+      padding: 14px 20px;
+      border-radius: 12px;
+      background: rgba(10, 16, 30, 0.95);
+      color: #e8f4ff;
+      border: 1px solid var(--border-strong);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all .35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: auto;
+      max-width: 440px;
+      line-height: 1.5;
+    }
+
+    [data-theme="light"] .toast {
+      color: #0c1a2e;
+      background: rgba(255, 255, 255, 0.97);
+    }
+
+    .toast.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast-success {
+      border-color: rgba(110, 231, 160, 0.5);
+      box-shadow: 0 0 24px rgba(110, 231, 160, 0.25);
+    }
+
+    .toast-error {
+      border-color: rgba(255, 124, 146, 0.55);
+      box-shadow: 0 0 24px rgba(255, 124, 146, 0.3);
+    }
+
+    .toast-rankup {
+      border-color: rgba(255, 209, 102, 0.65);
+      background: linear-gradient(135deg, rgba(30, 20, 60, 0.98), rgba(10, 16, 30, 0.98));
+      box-shadow: 0 0 40px rgba(255, 209, 102, 0.4), inset 0 0 20px rgba(255, 209, 102, 0.08);
+      font-size: 14.5px;
+    }
   </style>
 </head>
 
 <body>
+
+  <canvas id="particles-canvas"></canvas>
+
+  <div class="toolbar">
+    <button class="tool-btn no-ripple" data-theme-toggle title="Toggle theme">☀</button>
+    <button class="tool-btn no-ripple" data-sound-toggle title="Toggle sound">🔊</button>
+  </div>
 
   <div id="loader">
     <div class="loader-emblem"><span>⚙️</span></div>
@@ -863,7 +1086,8 @@
 
   <div class="wrap">
 
-    <div id="loginView" class="card login-card">
+    <!-- LOGIN -->
+    <div id="loginView" class="card login-card holo">
       <div class="logo-lg">⚙️</div>
       <h2>Admin Access</h2>
       <p>Authenticate to manage students, tasks, and rankings.</p>
@@ -873,6 +1097,7 @@
       <div class="error" id="loginError"></div>
     </div>
 
+    <!-- DASHBOARD -->
     <div id="dashView" class="hidden">
 
       <div class="top">
@@ -880,7 +1105,7 @@
           <div class="logo">⚙️</div>
           <div>
             <h1>Admin Console</h1>
-            <p>Control Panel · v2.0</p>
+            <p>Control Panel · v2.1</p>
           </div>
         </div>
         <button class="logout-top" onclick="doLogout()">Sign Out</button>
@@ -893,12 +1118,14 @@
         <div class="tab" data-tab="tasks" onclick="switchTab('tasks')">Tasks</div>
       </div>
 
-      <div id="tab-rank" class="card">
+      <!-- Ranking -->
+      <div id="tab-rank" class="card holo">
         <h3>Live Leaderboard</h3>
         <div id="lbList"></div>
       </div>
 
-      <div id="tab-points" class="card hidden">
+      <!-- Points -->
+      <div id="tab-points" class="card holo hidden">
         <h3>Assign / Update Points</h3>
         <label>Student</label>
         <select id="pStudent"></select>
@@ -910,7 +1137,8 @@
         <div class="ok" id="pointsMsg"></div>
       </div>
 
-      <div id="tab-students" class="card hidden">
+      <!-- Students -->
+      <div id="tab-students" class="card holo hidden">
         <h3>Register New Student</h3>
         <div class="grid2">
           <div>
@@ -934,7 +1162,8 @@
         <div id="studentList"></div>
       </div>
 
-      <div id="tab-tasks" class="card hidden">
+      <!-- Tasks -->
+      <div id="tab-tasks" class="card holo hidden">
         <h3>Create New Task</h3>
         <label>Task Name</label>
         <input id="tName" type="text" placeholder="e.g. Watch: Intro to Arrays">
@@ -971,6 +1200,7 @@
   </div>
 
   <script src="script.js"></script>
+  <script src="effects.js"></script>
   <script src="admin.js"></script>
 </body>
 
