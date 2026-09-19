@@ -1,5 +1,5 @@
 /*******************************************************
- * EFFECTS.JS v2 — PERFORMANCE OPTIMIZED
+ * EFFECTS.JS v3 — PERFORMANCE + MOBILE OPTIMIZED
  *******************************************************/
 
 const ThemeManager = {
@@ -74,8 +74,15 @@ const Particles = {
     canvas: null, ctx: null, particles: [],
     rafId: 0, lastFrame: 0, targetFps: 30, frameInterval: 1000 / 30,
     visible: true,
+    _isMobile: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
+    _isSlowDevice() {
+        if (this._isMobile) return true;
+        if (window.innerWidth < 640) return true;
+        if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) return true;
+        return false;
+    },
     init() {
-        if (window.innerWidth < 480 || navigator.hardwareConcurrency <= 2) return;
+        if (this._isSlowDevice()) return; // Skip on mobile/low-end
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         this.canvas = document.getElementById('particles-canvas');
         if (!this.canvas) return;
@@ -84,6 +91,7 @@ const Particles = {
         const count = Math.min(28, Math.round(window.innerWidth / 55));
         for (let i = 0; i < count; i++) this.particles.push(this._make());
         window.addEventListener('resize', this._onResize.bind(this));
+        window.addEventListener('orientationchange', () => setTimeout(this._onResize.bind(this), 200));
         document.addEventListener('visibilitychange', this._onVisibility.bind(this));
         this._loop(performance.now());
     },
@@ -245,6 +253,8 @@ function attachRipple() {
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('button, .tab, .radio-opt');
         if (!btn || btn.classList.contains('no-ripple')) return;
+        // Skip ripple on touch devices for performance
+        if (window.matchMedia('(hover: none)').matches) return;
         const rect = btn.getBoundingClientRect();
         const r = document.createElement('span');
         r.className = 'ripple';
@@ -265,9 +275,44 @@ function debounce(fn, wait) {
     };
 }
 
+/* ==================== MOBILE HELPERS ==================== */
+
+function setVH() {
+    document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+}
+
+function setupMobileSupport() {
+    setVH();
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', () => setTimeout(setVH, 100));
+
+    // Prevent bounce scroll on iOS
+    document.addEventListener('touchmove', function (e) {
+        var el = e.target;
+        while (el && el !== document.body) {
+            if (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth) return;
+            el = el.parentElement;
+        }
+    }, { passive: true });
+
+    // Prevent double-tap zoom on buttons (except text inputs)
+    let lastTouch = 0;
+    document.addEventListener('touchend', function (e) {
+        var now = Date.now();
+        if (now - lastTouch <= 300) {
+            var tag = (e.target.tagName || '').toUpperCase();
+            if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+                e.preventDefault();
+            }
+        }
+        lastTouch = now;
+    }, { passive: false });
+}
+
 window.addEventListener('load', () => {
     ThemeManager.init();
     Sound.initBtns();
     Particles.init();
     attachRipple();
+    setupMobileSupport();
 }, { once: true });

@@ -1,7 +1,12 @@
-// Admin page logic — v4.0 (all features)
+// Admin page logic — v6.0 (Exam System + Email + Comments)
 
 var ADMIN_PW = '';
-var CACHE = { students: [], tasks: [], lastLeaderboard: [], announcement: { active: false, text: '' }, selectedStudents: {} };
+var CACHE = {
+  students: [], tasks: [], exams: [], lastLeaderboard: [], examLeaderboard: [],
+  announcement: { active: false, text: '' }, selectedStudents: {},
+  editingExamId: null, editingQuestionId: null, currentExamId: null, currentExamResults: null,
+  comments: [], commentFilter: 'pending', adminEmail: '', pendingComments: 0
+};
 
 const SESSION_TIMEOUT_MS = 60 * 60 * 1000;
 
@@ -38,6 +43,7 @@ async function doLogin() {
   touchSession(); Sound.success();
   loadDashboard();
 }
+
 function doLogout() {
   Sound.click();
   sessionStorage.removeItem('adminPw');
@@ -64,14 +70,20 @@ async function loadDashboard() {
   CACHE.tasks = res.tasks || [];
   CACHE.lastLeaderboard = res.leaderboard || [];
   CACHE.announcement = res.announcement || { active: false, text: '' };
+  CACHE.exams = res.exams || [];
+  CACHE.examLeaderboard = res.examLeaderboard || [];
+  CACHE.adminEmail = res.adminEmail || '';
+  CACHE.pendingComments = res.pendingComments || 0;
 
   renderStats();
   renderLeaderboard(CACHE.lastLeaderboard);
   renderStudents(CACHE.students);
   renderTasks(CACHE.tasks);
+  renderExams();
   renderStudentPicker();
   fillDropdowns();
   renderAnnouncementBar();
+  updateCommentsBadge();
 }
 
 function switchTab(name) {
@@ -79,12 +91,13 @@ function switchTab(name) {
   document.querySelectorAll('.tab').forEach(function (t) {
     t.classList.toggle('active', t.dataset.tab === name);
   });
-  ['rank', 'points', 'students', 'tasks', 'analytics', 'log'].forEach(function (t) {
+  ['rank', 'points', 'students', 'tasks', 'exams', 'analytics', 'log', 'comments'].forEach(function (t) {
     var el = document.getElementById('tab-' + t);
     if (el) el.classList.toggle('hidden', t !== name);
   });
   if (name === 'analytics') loadAnalytics();
   if (name === 'log') loadActivityLog();
+  if (name === 'comments') loadComments();
 }
 
 /* ========== STATS ========== */
@@ -253,8 +266,7 @@ async function bulkDeleteStudents() {
   var codes = Object.keys(CACHE.selectedStudents);
   if (!codes.length) return;
   var ok = await showConfirm({
-    icon: '🗑️',
-    title: 'Delete ' + codes.length + ' students?',
+    icon: '🗑️', title: 'Delete ' + codes.length + ' students?',
     message: 'This will remove all selected students. Their scores remain in the Scores sheet.',
     confirmText: 'Delete All'
   });
@@ -395,7 +407,7 @@ function updateTaskDropdown() {
   }).join('');
 }
 
-/* ========== STUDENT PICKER ========== */
+/* ========== STUDENT PICKER (task) ========== */
 function toggleAssignMode() {
   Sound.click();
   var mode = document.querySelector('input[name="assignMode"]:checked').value;
@@ -587,7 +599,7 @@ async function duplicateTask(taskId) {
   loadDashboard();
 }
 
-/* ========== CSV IMPORT ========== */
+/* ========== CSV IMPORT (students) ========== */
 function openCsvImport() {
   Sound.click();
   document.getElementById('csvText').value = '';
@@ -659,8 +671,7 @@ function handleRestoreFile(e) {
     try {
       var data = JSON.parse(ev.target.result);
       var ok = await showConfirm({
-        icon: '⚠️',
-        title: 'Restore Backup?',
+        icon: '⚠️', title: 'Restore Backup?',
         message: 'This will REPLACE all current data. Cannot be undone.',
         confirmText: 'Restore'
       });
@@ -681,8 +692,7 @@ function handleRestoreFile(e) {
 }
 async function openResetScores() {
   var ok = await showConfirm({
-    icon: '⚠️',
-    title: 'Reset all scores?',
+    icon: '⚠️', title: 'Reset all scores?',
     message: 'This will PERMANENTLY clear all points for every student.',
     confirmText: 'Reset All'
   });
@@ -873,15 +883,21 @@ const COMMANDS = [
   { icon: '👥', label: 'Go to Students', hint: 'tab', action: function () { switchTab('students'); } },
   { icon: '📋', label: 'Go to Tasks', hint: 'tab', action: function () { switchTab('tasks'); } },
   { icon: '🏆', label: 'Go to Leaderboard', hint: 'tab', action: function () { switchTab('rank'); } },
+  { icon: '📝', label: 'Go to Exams', hint: 'tab', action: function () { switchTab('exams'); } },
+  { icon: '💬', label: 'Go to Comments', hint: 'tab', action: function () { switchTab('comments'); } },
   { icon: '📊', label: 'Go to Analytics', hint: 'tab', action: function () { switchTab('analytics'); } },
   { icon: '📜', label: 'Go to Activity Log', hint: 'tab', action: function () { switchTab('log'); } },
   { icon: '➕', label: 'Add Student', hint: 'create', action: function () { switchTab('students'); setTimeout(function () { document.getElementById('sCode').focus(); }, 200); } },
   { icon: '➕', label: 'Create Task', hint: 'create', action: function () { switchTab('tasks'); setTimeout(function () { document.getElementById('tName').focus(); }, 200); } },
+  { icon: '➕', label: 'Create New Exam', hint: 'create', action: function () { switchTab('exams'); setTimeout(function () { switchExamSubtab('create'); }, 200); } },
+  { icon: '🏆', label: 'Exam Leaderboard', hint: 'tab', action: function () { switchTab('exams'); setTimeout(function () { switchExamSubtab('leaderboard'); }, 200); } },
   { icon: '📥', label: 'Import Students (CSV)', hint: 'bulk', action: function () { openCsvImport(); } },
   { icon: '⬇', label: 'Export Students CSV', hint: 'export', action: function () { exportStudentsCsv(); } },
   { icon: '⬇', label: 'Export Leaderboard CSV', hint: 'export', action: function () { exportLeaderboardCsv(); } },
   { icon: '💾', label: 'Download Backup', hint: 'data', action: function () { downloadBackup(); } },
   { icon: '📢', label: 'Edit Announcement', hint: 'edit', action: function () { openAnnounceModal(); } },
+  { icon: '📧', label: 'Admin Email Settings', hint: 'config', action: function () { openAdminEmailModal(); } },
+  { icon: '📧', label: 'Test Task Reminders', hint: 'test', action: function () { testTaskReminder(); } },
   { icon: '🔄', label: 'Reset All Scores', hint: 'danger', action: function () { openResetScores(); } },
   { icon: '🔑', label: 'Change Admin Password', hint: 'security', action: function () { openChangePwModal(); } },
   { icon: '☀', label: 'Toggle Theme', hint: 'ui', action: function () { ThemeManager.toggle(); } },
@@ -1054,6 +1070,763 @@ async function assignPoints() {
   loadDashboard();
 }
 
+/* =================================================================
+ * ========================= EXAM SYSTEM ===========================
+ * ================================================================= */
+
+function switchExamSubtab(name) {
+  Sound.click();
+  document.querySelectorAll('.exam-subtab').forEach(function (t) {
+    t.classList.toggle('active', t.dataset.subtab === name);
+  });
+  ['list', 'create', 'leaderboard'].forEach(function (t) {
+    var el = document.getElementById('examSub-' + t);
+    if (el) el.classList.toggle('hidden', t !== name);
+  });
+  if (name === 'leaderboard') loadExamLeaderboard();
+  if (name === 'create' && !CACHE.editingExamId) resetExamForm();
+}
+
+function renderExams() {
+  var box = document.getElementById('examList');
+  if (!box) return;
+  var count = document.getElementById('examCount');
+  var list = CACHE.exams || [];
+  if (count) count.textContent = list.length;
+  box.innerHTML = '';
+  if (!list.length) {
+    box.innerHTML = '<div class="empty"><span class="icon">📝</span>No exams yet.<br><span style="font-size:11.5px;opacity:0.7;">Click "New Exam" to create your first.</span></div>';
+    return;
+  }
+
+  list.forEach(function (e) {
+    var statusClass = String(e.Status || 'DRAFT').toLowerCase();
+    var card = document.createElement('div');
+    card.className = 'exam-card ' + statusClass + '-exam' + (e.Status === 'ACTIVE' ? ' active-exam' : '');
+
+    var dateBit = e.ExamDate ? '<span>📅 ' + escapeHtml(e.ExamDate) + '</span>' : '';
+    var durBit = e.Duration ? '<span>⏱ ' + e.Duration + ' min</span>' : '';
+    var marksBit = '<span>🎯 <b>' + e.MaxMarks + '</b> marks</span>';
+    var weightBit = '<span>⚖ <b>' + e.Weight + '×</b> weight</span>';
+    var qBit = '<span>📋 <b>' + (e.QuestionCount || 0) + '</b> Q</span>';
+    var attBit = '<span>👥 <b>' + (e.AttemptCount || 0) + '</b> attempts</span>';
+    var negBit = e.NegativeMark > 0 ? '<span>⚠ −' + e.NegativeMark + '</span>' : '';
+
+    var publishBtn = '';
+    if (e.Status === 'DRAFT') {
+      publishBtn = '<button class="btn-publish" onclick="setExamStatus(\'' + escAttr(e.ExamID) + '\',\'ACTIVE\')">▶ Publish</button>';
+    } else if (e.Status === 'ACTIVE') {
+      publishBtn = '<button class="btn-ghost" onclick="setExamStatus(\'' + escAttr(e.ExamID) + '\',\'CLOSED\')">⏹ Close</button>';
+    } else if (e.Status === 'CLOSED') {
+      publishBtn = '<button class="btn-ghost" onclick="setExamStatus(\'' + escAttr(e.ExamID) + '\',\'ACTIVE\')">↻ Reopen</button>';
+    }
+
+    card.innerHTML =
+      '<div class="exam-header">' +
+      '<div class="exam-title">📝 ' + escapeHtml(e.ExamName) +
+      '<span class="exam-type-tag">' + escapeHtml(e.ExamType || 'Exam') + '</span>' +
+      '</div>' +
+      '<span class="status-badge ' + statusClass + '">' + escapeHtml(e.Status || 'DRAFT') + '</span>' +
+      '</div>' +
+      '<div class="exam-meta">' + dateBit + durBit + marksBit + weightBit + qBit + attBit + negBit + '</div>' +
+      (e.Description ? '<div class="exam-desc">' + escapeHtml(e.Description) + '</div>' : '') +
+      '<div class="exam-actions">' +
+      publishBtn +
+      '<button class="btn-ghost" onclick="openQuestionsModal(\'' + escAttr(e.ExamID) + '\')">📋 Questions</button>' +
+      '<button class="btn-ghost" onclick="openExamResults(\'' + escAttr(e.ExamID) + '\')">📊 Results</button>' +
+      '<button class="btn-email" onclick="notifyExamPublished(\'' + escAttr(e.ExamID) + '\')">📧 Notify</button>' +
+      '<button class="btn-ghost" onclick="sendExamResults(\'' + escAttr(e.ExamID) + '\')">📧 Send Results</button>' +
+      '<button class="btn-ghost" onclick="editExam(\'' + escAttr(e.ExamID) + '\')">✏️ Edit</button>' +
+      '<button class="btn-ghost" onclick="resetAttempts(\'' + escAttr(e.ExamID) + '\')" style="color:var(--danger);border-color:rgba(255,77,106,0.4);">↺ Reset</button>' +
+      '<button class="btn-ghost" onclick="deleteExamConfirm(\'' + escAttr(e.ExamID) + '\',\'' + escAttr(e.ExamName) + '\')" style="color:var(--danger);border-color:rgba(255,77,106,0.4);">🗑️</button>' +
+      '</div>';
+    box.appendChild(card);
+  });
+}
+
+function resetExamForm() {
+  CACHE.editingExamId = null;
+  document.getElementById('examFormTitle').textContent = 'Create New Exam';
+  document.getElementById('examSaveBtn').textContent = 'Create Exam';
+  document.getElementById('examCancelBtn').style.display = 'none';
+  document.getElementById('exName').value = '';
+  document.getElementById('exDate').value = '';
+  document.getElementById('exDuration').value = '60';
+  document.getElementById('exMaxMarks').value = '100';
+  document.getElementById('exWeight').value = '1';
+  document.getElementById('exNegative').value = '0';
+  document.getElementById('exDesc').value = '';
+  document.getElementById('exShuffle').checked = false;
+  document.getElementById('exShowAnswers').checked = false;
+  var rAll = document.querySelector('input[name="exAssignMode"][value="all"]');
+  if (rAll) rAll.checked = true;
+  document.getElementById('exOptAll').classList.add('checked');
+  document.getElementById('exOptSpecific').classList.remove('checked');
+  document.getElementById('examStudentPickList').classList.add('hidden');
+  document.getElementById('examMsg').textContent = '';
+  renderExamStudentPicker();
+}
+
+function editExam(examId) {
+  Sound.click();
+  var e = CACHE.exams.find(function (x) { return String(x.ExamID) === String(examId); });
+  if (!e) return;
+  CACHE.editingExamId = examId;
+  switchExamSubtab('create');
+  document.getElementById('examFormTitle').textContent = 'Edit Exam — ' + e.ExamName;
+  document.getElementById('examSaveBtn').textContent = 'Save Changes';
+  document.getElementById('examCancelBtn').style.display = 'inline-block';
+  document.getElementById('exName').value = e.ExamName || '';
+  document.getElementById('exDate').value = e.ExamDate || '';
+  document.getElementById('exDuration').value = e.Duration || 60;
+  document.getElementById('exMaxMarks').value = e.MaxMarks || 100;
+  document.getElementById('exWeight').value = e.Weight || 1;
+  document.getElementById('exNegative').value = e.NegativeMark || 0;
+  document.getElementById('exDesc').value = e.Description || '';
+  document.getElementById('exShuffle').checked = !!e.Shuffle;
+  document.getElementById('exShowAnswers').checked = !!e.ShowAnswers;
+  document.getElementById('exType').value = e.ExamType || 'Unit Test';
+
+  var isAll = !e.AssignedTo || String(e.AssignedTo).toUpperCase() === 'ALL';
+  var targetRadio = document.querySelector('input[name="exAssignMode"][value="' + (isAll ? 'all' : 'specific') + '"]');
+  if (targetRadio) targetRadio.checked = true;
+  document.getElementById('exOptAll').classList.toggle('checked', isAll);
+  document.getElementById('exOptSpecific').classList.toggle('checked', !isAll);
+  document.getElementById('examStudentPickList').classList.toggle('hidden', isAll);
+  renderExamStudentPicker();
+  if (!isAll) {
+    var codes = String(e.AssignedTo).split(',').map(function (x) { return x.trim(); });
+    document.querySelectorAll('#examStudentPickList input[type="checkbox"]').forEach(function (cb) {
+      if (codes.indexOf(cb.value) !== -1) cb.checked = true;
+    });
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelExamEdit() { Sound.click(); resetExamForm(); }
+
+function toggleExamAssignMode() {
+  Sound.click();
+  var mode = document.querySelector('input[name="exAssignMode"]:checked').value;
+  document.getElementById('exOptAll').classList.toggle('checked', mode === 'all');
+  document.getElementById('exOptSpecific').classList.toggle('checked', mode === 'specific');
+  document.getElementById('examStudentPickList').classList.toggle('hidden', mode !== 'specific');
+}
+
+function renderExamStudentPicker() {
+  var box = document.getElementById('examStudentPickList');
+  if (!box) return;
+  if (!CACHE.students.length) {
+    box.innerHTML = '<div class="empty" style="border:none;padding:16px;">Add students first.</div>';
+    return;
+  }
+  box.innerHTML = CACHE.students.map(function (s) {
+    return '<label class="pick-item">' +
+      '<input type="checkbox" value="' + escAttr(s.Code) + '">' +
+      '<span class="name">' + escapeHtml(s.Name) + '</span>' +
+      '<span class="code">' + escapeHtml(s.Code) + '</span>' +
+      '</label>';
+  }).join('');
+}
+
+async function saveExam() {
+  var name = document.getElementById('exName').value.trim();
+  var date = document.getElementById('exDate').value;
+  var type = document.getElementById('exType').value;
+  var duration = document.getElementById('exDuration').value.trim();
+  var maxMarks = document.getElementById('exMaxMarks').value.trim();
+  var weight = document.getElementById('exWeight').value;
+  var negative = document.getElementById('exNegative').value;
+  var desc = document.getElementById('exDesc').value.trim();
+  var shuffle = document.getElementById('exShuffle').checked;
+  var showAnswers = document.getElementById('exShowAnswers').checked;
+  var msg = document.getElementById('examMsg');
+  msg.textContent = '';
+
+  if (!name) { msg.className = 'error'; msg.textContent = 'Exam name required.'; Sound.error(); return; }
+
+  var mode = document.querySelector('input[name="exAssignMode"]:checked').value;
+  var assignedTo = 'ALL';
+  if (mode === 'specific') {
+    var checked = Array.prototype.slice.call(document.querySelectorAll('#examStudentPickList input[type="checkbox"]:checked')).map(function (cb) { return cb.value; });
+    if (!checked.length) { msg.className = 'error'; msg.textContent = 'Select at least one student.'; Sound.error(); return; }
+    assignedTo = checked.join(',');
+  }
+
+  var payload = {
+    password: ADMIN_PW,
+    examName: name, examDate: date, examType: type,
+    duration: duration, maxMarks: maxMarks, weight: weight,
+    negativeMark: negative, description: desc,
+    assignedTo: assignedTo, shuffle: shuffle, showAnswers: showAnswers
+  };
+
+  Sound.click(); showLoader();
+  var res;
+  var wasEditing = !!CACHE.editingExamId;
+  if (wasEditing) {
+    payload.examId = CACHE.editingExamId;
+    res = await callApi('updateExam', payload);
+  } else {
+    res = await callApi('addExam', payload);
+  }
+  hideLoader();
+  if (!res.success) { msg.className = 'error'; msg.textContent = res.message; Toast.error(res.message); return; }
+
+  msg.className = '';
+  Toast.success(wasEditing ? '✓ Exam updated' : '✓ Exam created — ' + (res.examId || ''));
+  resetExamForm();
+  await loadDashboard();
+  switchExamSubtab('list');
+  if (!wasEditing && res.examId) {
+    setTimeout(function () { openQuestionsModal(res.examId); }, 300);
+  }
+}
+
+async function setExamStatus(examId, status) {
+  Sound.click(); showLoader();
+  var res = await callApi('updateExamStatus', { password: ADMIN_PW, examId: examId, status: status });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  Toast.success('✓ Status → ' + status);
+  loadDashboard();
+}
+
+async function deleteExamConfirm(examId, examName) {
+  var ok = await showConfirm({
+    icon: '🗑️', title: 'Delete exam?',
+    message: 'Delete "' + examName + '" permanently? All questions and student attempts for this exam will be removed. Cannot be undone.',
+    confirmText: 'Delete'
+  });
+  if (!ok) return;
+  Sound.click(); showLoader();
+  var res = await callApi('deleteExam', { password: ADMIN_PW, examId: examId });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  Toast.success('✓ Exam deleted');
+  loadDashboard();
+}
+
+async function resetAttempts(examId) {
+  var ok = await showConfirm({
+    icon: '⚠️', title: 'Reset all attempts?',
+    message: 'This will clear all student attempts for this exam. Students can take it again. Cannot be undone.',
+    confirmText: 'Reset'
+  });
+  if (!ok) return;
+  Sound.click(); showLoader();
+  var res = await callApi('resetExamAttempts', { password: ADMIN_PW, examId: examId });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  Toast.success('✓ All attempts cleared');
+  loadDashboard();
+}
+
+/* ---------- Question Manager ---------- */
+async function openQuestionsModal(examId) {
+  Sound.click();
+  CACHE.currentExamId = examId;
+  var e = CACHE.exams.find(function (x) { return String(x.ExamID) === String(examId); });
+  document.getElementById('qmExamName').textContent = e ? e.ExamName : 'Questions';
+  document.getElementById('questionList').innerHTML = '<div class="empty">Loading…</div>';
+  document.getElementById('questionFormWrap').classList.add('hidden');
+  document.getElementById('questionsModal').classList.add('show');
+  await refreshQuestionList();
+}
+
+function closeQuestionsModal() {
+  Sound.click();
+  document.getElementById('questionsModal').classList.remove('show');
+  CACHE.currentExamId = null;
+  loadDashboard();
+}
+
+async function refreshQuestionList() {
+  if (!CACHE.currentExamId) return;
+  var res = await callApi('getExamQuestions', { password: ADMIN_PW, examId: CACHE.currentExamId });
+  if (!res.success) { Toast.error(res.message); return; }
+  var qs = res.questions || [];
+  document.getElementById('qmCount').textContent = qs.length + ' question' + (qs.length === 1 ? '' : 's');
+  var box = document.getElementById('questionList');
+  box.innerHTML = '';
+  if (!qs.length) {
+    box.innerHTML = '<div class="empty" style="padding:22px;">No questions yet.<br><span style="font-size:11.5px;opacity:0.7;">Click "➕ Add" or "📥 Bulk CSV".</span></div>';
+    return;
+  }
+  qs.forEach(function (q, i) {
+    var item = document.createElement('div');
+    item.className = 'question-item';
+    function optCls(letter) { return 'q-opt' + (q.Correct === letter ? ' correct' : ''); }
+    item.innerHTML =
+      '<div class="q-text"><span class="q-num">Q' + (i + 1) + '</span>' + escapeHtml(q.QText) + '</div>' +
+      '<div class="q-options">' +
+      '<div class="' + optCls('A') + '">A) ' + escapeHtml(q.OptionA) + '</div>' +
+      '<div class="' + optCls('B') + '">B) ' + escapeHtml(q.OptionB) + '</div>' +
+      '<div class="' + optCls('C') + '">C) ' + escapeHtml(q.OptionC) + '</div>' +
+      '<div class="' + optCls('D') + '">D) ' + escapeHtml(q.OptionD) + '</div>' +
+      '</div>' +
+      '<div class="q-footer">' +
+      '<span class="marks">' + q.Marks + ' mark' + (q.Marks === 1 ? '' : 's') + (q.Explanation ? ' · has explanation' : '') + '</span>' +
+      '<div class="q-actions">' +
+      '<button class="icon-mini" onclick="editQuestion(\'' + escAttr(q.QuestionID) + '\')" title="Edit">✏️</button>' +
+      '<button class="icon-mini danger" onclick="deleteQuestionConfirm(\'' + escAttr(q.QuestionID) + '\')" title="Delete">🗑️</button>' +
+      '</div>' +
+      '</div>';
+    box.appendChild(item);
+  });
+}
+
+function openAddQuestionForm() {
+  Sound.click();
+  CACHE.editingQuestionId = null;
+  document.getElementById('questionFormTitle').textContent = 'ADD QUESTION';
+  document.getElementById('questionSaveBtn').textContent = 'Add Question';
+  document.getElementById('qText').value = '';
+  document.getElementById('qA').value = '';
+  document.getElementById('qB').value = '';
+  document.getElementById('qC').value = '';
+  document.getElementById('qD').value = '';
+  document.getElementById('qCorrect').value = 'A';
+  document.getElementById('qMarks').value = '1';
+  document.getElementById('qExpl').value = '';
+  document.getElementById('questionFormWrap').classList.remove('hidden');
+  document.getElementById('qText').focus();
+}
+
+function closeAddQuestionForm() {
+  Sound.click();
+  document.getElementById('questionFormWrap').classList.add('hidden');
+  CACHE.editingQuestionId = null;
+}
+
+function editQuestion(qid) {
+  Sound.click();
+  callApi('getExamQuestions', { password: ADMIN_PW, examId: CACHE.currentExamId }).then(function (res) {
+    if (!res.success) return;
+    var q = (res.questions || []).find(function (x) { return String(x.QuestionID) === String(qid); });
+    if (!q) return;
+    CACHE.editingQuestionId = qid;
+    document.getElementById('questionFormTitle').textContent = 'EDIT QUESTION';
+    document.getElementById('questionSaveBtn').textContent = 'Save Changes';
+    document.getElementById('qText').value = q.QText;
+    document.getElementById('qA').value = q.OptionA;
+    document.getElementById('qB').value = q.OptionB;
+    document.getElementById('qC').value = q.OptionC;
+    document.getElementById('qD').value = q.OptionD;
+    document.getElementById('qCorrect').value = q.Correct;
+    document.getElementById('qMarks').value = q.Marks;
+    document.getElementById('qExpl').value = q.Explanation || '';
+    document.getElementById('questionFormWrap').classList.remove('hidden');
+    document.getElementById('qText').focus();
+  });
+}
+
+async function saveQuestion() {
+  var qText = document.getElementById('qText').value.trim();
+  var A = document.getElementById('qA').value.trim();
+  var B = document.getElementById('qB').value.trim();
+  var C = document.getElementById('qC').value.trim();
+  var D = document.getElementById('qD').value.trim();
+  var correct = document.getElementById('qCorrect').value;
+  var marks = document.getElementById('qMarks').value.trim();
+  var expl = document.getElementById('qExpl').value.trim();
+
+  if (!qText || !A || !B || !C || !D) { Toast.error('Fill question + all 4 options'); Sound.error(); return; }
+
+  var payload = {
+    password: ADMIN_PW, examId: CACHE.currentExamId,
+    qText: qText, optionA: A, optionB: B, optionC: C, optionD: D,
+    correct: correct, marks: marks, explanation: expl
+  };
+
+  Sound.click(); showLoader();
+  var res;
+  var wasEditing = !!CACHE.editingQuestionId;
+  if (wasEditing) {
+    payload.questionId = CACHE.editingQuestionId;
+    res = await callApi('updateQuestion', payload);
+  } else {
+    res = await callApi('addQuestion', payload);
+  }
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  Toast.success(wasEditing ? '✓ Question updated' : '✓ Question added');
+  closeAddQuestionForm();
+  await refreshQuestionList();
+}
+
+async function deleteQuestionConfirm(qid) {
+  var ok = await showConfirm({ icon: '🗑️', title: 'Delete question?', message: 'This question will be removed permanently.', confirmText: 'Delete' });
+  if (!ok) return;
+  Sound.click(); showLoader();
+  var res = await callApi('deleteQuestion', { password: ADMIN_PW, questionId: qid });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  Toast.success('✓ Question deleted');
+  await refreshQuestionList();
+}
+
+/* ---------- Bulk Questions ---------- */
+function openBulkQuestionsModal() {
+  Sound.click();
+  document.getElementById('bulkQText').value = '';
+  document.getElementById('bulkQFile').value = '';
+  document.getElementById('bulkQuestionsModal').classList.add('show');
+}
+function closeBulkQuestionsModal() {
+  Sound.click();
+  document.getElementById('bulkQuestionsModal').classList.remove('show');
+}
+function handleBulkQFile(e) {
+  var f = e.target.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function (ev) { document.getElementById('bulkQText').value = ev.target.result; };
+  r.readAsText(f);
+}
+async function submitBulkQuestions() {
+  var raw = document.getElementById('bulkQText').value.trim();
+  if (!raw) { Toast.error('No data'); return; }
+  var lines = raw.split(/\r?\n/).filter(function (l) { return l.trim(); });
+  var questions = [];
+  lines.forEach(function (line) {
+    if (/^question\s*,/i.test(line)) return;
+    var parts = [];
+    var cur = '', inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { parts.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    parts.push(cur.trim());
+    if (parts.length < 6) return;
+    questions.push({
+      qText: parts[0], optionA: parts[1], optionB: parts[2],
+      optionC: parts[3], optionD: parts[4],
+      correct: (parts[5] || '').toUpperCase(),
+      marks: parts[6] || 1,
+      explanation: parts[7] || ''
+    });
+  });
+  if (!questions.length) { Toast.error('No valid rows'); return; }
+  Sound.click(); showLoader();
+  var res = await callApi('bulkAddQuestions', { password: ADMIN_PW, examId: CACHE.currentExamId, questions: questions });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  closeBulkQuestionsModal();
+  Toast.success('✓ Added ' + res.added + ' questions (' + res.skipped + ' skipped)');
+  await refreshQuestionList();
+}
+
+/* ---------- Results Viewer ---------- */
+async function openExamResults(examId) {
+  Sound.click();
+  document.getElementById('erExamName').textContent = 'Loading…';
+  document.getElementById('erExamMeta').textContent = '';
+  document.getElementById('erSummary').innerHTML = '';
+  document.getElementById('erTableBody').innerHTML = '';
+  document.getElementById('examResultsModal').classList.add('show');
+
+  var res = await callApi('getExamResults', { password: ADMIN_PW, examId: examId });
+  if (!res.success) { Toast.error(res.message); closeExamResults(); return; }
+
+  CACHE.currentExamResults = res;
+  var exam = res.exam || {};
+  document.getElementById('erExamName').textContent = '📊 ' + exam.ExamName;
+  document.getElementById('erExamMeta').textContent =
+    (exam.ExamDate || '—') + ' · Max ' + exam.MaxMarks + ' · Weight ' + exam.Weight + '×';
+
+  var results = res.results || [];
+  var missed = res.missed || [];
+  var total = results.length;
+  var avg = total ? Math.round(results.reduce(function (s, r) { return s + r.percentage; }, 0) / total * 100) / 100 : 0;
+  var highest = total ? Math.max.apply(null, results.map(function (r) { return r.percentage; })) : 0;
+  var lowest = total ? Math.min.apply(null, results.map(function (r) { return r.percentage; })) : 0;
+
+  document.getElementById('erSummary').innerHTML =
+    '<div class="rs-item">Total Attempts<b>' + total + '</b></div>' +
+    '<div class="rs-item">Average<b>' + avg + '%</b></div>' +
+    '<div class="rs-item">Highest<b>' + highest + '%</b></div>' +
+    '<div class="rs-item">Lowest<b>' + lowest + '%</b></div>' +
+    '<div class="rs-item">Not Attempted<b>' + missed.length + '</b></div>';
+
+  var body = document.getElementById('erTableBody');
+  body.innerHTML = '';
+  if (!results.length) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:22px;">No attempts yet.</td></tr>';
+  } else {
+    results.forEach(function (r, i) {
+      var pctClass = r.percentage >= 75 ? 'high' : r.percentage >= 50 ? 'mid' : 'low';
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="rank-num">#' + (i + 1) + '</td>' +
+        '<td>' + escapeHtml(r.studentName) + ' <span style="color:var(--muted);font-size:10.5px;">(' + escapeHtml(r.studentCode) + ')</span></td>' +
+        '<td>' + r.score + ' / ' + r.totalMarks + '</td>' +
+        '<td class="pct ' + pctClass + '">' + r.percentage + '%</td>' +
+        '<td style="font-family:Orbitron,sans-serif;font-size:11px;color:var(--neon);">' + r.weightedScore + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  if (missed.length) {
+    missed.forEach(function (m) {
+      var tr = document.createElement('tr');
+      tr.style.opacity = '0.55';
+      tr.innerHTML =
+        '<td>—</td>' +
+        '<td>' + escapeHtml(m.studentName) + ' <span style="color:var(--muted);font-size:10.5px;">(' + escapeHtml(m.studentCode) + ')</span></td>' +
+        '<td colspan="3" style="color:var(--muted);font-style:italic;">Not attempted</td>';
+      body.appendChild(tr);
+    });
+  }
+}
+
+function closeExamResults() {
+  Sound.click();
+  document.getElementById('examResultsModal').classList.remove('show');
+  CACHE.currentExamResults = null;
+}
+
+function exportExamResultsCsv() {
+  if (!CACHE.currentExamResults) return;
+  var data = CACHE.currentExamResults;
+  var rows = [['Rank', 'Student', 'Code', 'Score', 'TotalMarks', 'Percentage', 'WeightedScore']];
+  (data.results || []).forEach(function (r, i) {
+    rows.push([i + 1, r.studentName, r.studentCode, r.score, r.totalMarks, r.percentage, r.weightedScore]);
+  });
+  (data.missed || []).forEach(function (m) {
+    rows.push(['—', m.studentName, m.studentCode, 'Not attempted', '', '', '']);
+  });
+  downloadCsv('exam-results-' + (data.exam ? data.exam.ExamID : 'exam') + '.csv', rows);
+  Toast.success('✓ Exported');
+}
+
+async function loadExamLeaderboard() {
+  var box = document.getElementById('examLeaderboardList');
+  box.innerHTML = '<div class="empty">Loading…</div>';
+  var res = await callApi('getExamLeaderboard', { password: ADMIN_PW });
+  if (!res.success) { box.innerHTML = '<div class="empty">' + (res.message || 'Could not load') + '</div>'; return; }
+  var list = res.leaderboard || [];
+  CACHE.examLeaderboard = list;
+  if (!list.length) {
+    box.innerHTML = '<div class="empty"><span class="icon">🏆</span>No exam data yet.</div>';
+    return;
+  }
+  box.innerHTML = '';
+  var frag = document.createDocumentFragment();
+  var shown = 0;
+  list.forEach(function (s) {
+    if (s.totalWeighted === 0 && s.examsTaken === 0) return;
+    shown++;
+    var row = document.createElement('div');
+    row.className = 'row no-click' + (s.rank <= 4 ? ' top-tier' : '');
+    row.innerHTML =
+      '<div style="display:flex;align-items:center;gap:14px;min-width:0;">' +
+      rankBadgeHtml(s.rank) +
+      '<div style="min-width:0;">' +
+      '<div class="main">' + escapeHtml(s.name) + '</div>' +
+      '<div class="sub">' + escapeHtml(s.code) + ' <span class="dot">·</span> ' + s.examsTaken + ' exam' + (s.examsTaken === 1 ? '' : 's') + '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="pts">' + s.totalWeighted + ' PTS</div>';
+    frag.appendChild(row);
+  });
+  if (!shown) {
+    box.innerHTML = '<div class="empty"><span class="icon">🏆</span>No exam attempts yet.</div>';
+    return;
+  }
+  box.appendChild(frag);
+}
+
+/* =================================================================
+ * ================= PHASE 4 — EMAIL NOTIFICATIONS =================
+ * ================================================================= */
+
+function openAdminEmailModal() {
+  Sound.click();
+  document.getElementById('adminEmailInput').value = CACHE.adminEmail || '';
+  document.getElementById('adminEmailModal').classList.add('show');
+}
+function closeAdminEmailModal() {
+  Sound.click();
+  document.getElementById('adminEmailModal').classList.remove('show');
+}
+async function saveAdminEmail() {
+  var email = document.getElementById('adminEmailInput').value.trim();
+  showLoader();
+  var res = await callApi('setAdminEmail', { password: ADMIN_PW, email: email });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  CACHE.adminEmail = email;
+  closeAdminEmailModal();
+  Toast.success('✓ Admin email saved');
+}
+
+async function notifyExamPublished(examId) {
+  var ok = await showConfirm({
+    icon: '📧', title: 'Email all assigned students?',
+    message: 'Sab assigned students ko exam ka email jayega. Daily Gmail quota (~100/day) ka dhyaan rakho.',
+    confirmText: 'Send Emails'
+  });
+  if (!ok) return;
+  Sound.click(); showLoader();
+  var res = await callApi('notifyExamPublished', { password: ADMIN_PW, examId: examId });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  if (res.sent === 0 && res.failed === 0 && res.message) {
+    Toast.error(res.message);
+  } else {
+    Toast.success('✓ Sent: ' + res.sent + ' · Failed: ' + res.failed);
+  }
+}
+
+async function sendExamResults(examId) {
+  var ok = await showConfirm({
+    icon: '📧', title: 'Send result emails?',
+    message: 'Sab attempted students ko unka result email jayega.',
+    confirmText: 'Send Results'
+  });
+  if (!ok) return;
+  Sound.click(); showLoader();
+  var res = await callApi('sendExamResults', { password: ADMIN_PW, examId: examId });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  Toast.success('✓ Sent: ' + res.sent + ' · Failed: ' + res.failed);
+}
+
+async function testTaskReminder() {
+  Sound.click(); showLoader();
+  var res = await callApi('sendTaskReminderNow', { password: ADMIN_PW });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message || 'Failed'); return; }
+  if (res.message) Toast.success('✓ ' + res.message);
+  else Toast.success('✓ Reminders sent: ' + res.sent + ' · Failed: ' + res.failed);
+}
+
+/* =================================================================
+ * ================= PHASE 4 — COMMENTS SYSTEM =====================
+ * ================================================================= */
+
+function updateCommentsBadge() {
+  var badge = document.getElementById('commentsBadge');
+  if (!badge) return;
+  if (CACHE.pendingComments > 0) {
+    badge.textContent = CACHE.pendingComments;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+  var pendingBadge = document.getElementById('pendingBadge');
+  if (pendingBadge) {
+    if (CACHE.pendingComments > 0) {
+      pendingBadge.textContent = CACHE.pendingComments;
+      pendingBadge.classList.remove('hidden');
+    } else {
+      pendingBadge.classList.add('hidden');
+    }
+  }
+}
+
+function setCommentFilter(filter) {
+  Sound.click();
+  CACHE.commentFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(function (c) {
+    c.classList.toggle('active', c.dataset.filter === filter);
+  });
+  loadComments();
+}
+
+async function loadComments() {
+  var box = document.getElementById('commentsList');
+  if (!box) return;
+  box.innerHTML = '<div class="empty">Loading…</div>';
+
+  var res = await callApi('getComments', {
+    password: ADMIN_PW,
+    filters: { status: CACHE.commentFilter, type: 'all' }
+  });
+  if (!res.success) { box.innerHTML = '<div class="empty">' + (res.message || 'Error') + '</div>'; return; }
+
+  CACHE.comments = res.comments || [];
+
+  var pendingCount = CACHE.comments.filter(function (c) { return c.status === 'pending'; }).length;
+  if (CACHE.commentFilter === 'pending') {
+    CACHE.pendingComments = pendingCount;
+    updateCommentsBadge();
+  }
+
+  if (!CACHE.comments.length) {
+    box.innerHTML = '<div class="empty"><span class="icon">💬</span>No comments in this filter.</div>';
+    return;
+  }
+
+  box.innerHTML = '';
+  var frag = document.createDocumentFragment();
+  CACHE.comments.forEach(function (c) {
+    var card = document.createElement('div');
+    card.className = 'comment-card ' + c.status;
+
+    var typeLabel = c.type === 'task' ? '📋 Task' : '📝 Exam';
+    var dateStr = '';
+    try { dateStr = new Date(c.createdAt).toLocaleString(); } catch (e) { }
+
+    var replyHtml = '';
+    if (c.reply) {
+      replyHtml = '<div class="comment-reply"><div class="lbl">✓ Your reply</div>' + escapeHtml(c.reply) + '</div>';
+    } else {
+      replyHtml =
+        '<div class="comment-reply-form">' +
+        '<textarea id="reply_' + c.commentId + '" placeholder="Type your reply…"></textarea>' +
+        '<button onclick="submitReply(\'' + escAttr(c.commentId) + '\')">Send Reply</button>' +
+        '</div>';
+    }
+
+    card.innerHTML =
+      '<div class="comment-head">' +
+      '<div class="comment-student">' + escapeHtml(c.studentName) +
+      '<span class="code">' + escapeHtml(c.studentCode) + '</span>' +
+      '</div>' +
+      '<div class="comment-meta">' + escapeHtml(dateStr) + '</div>' +
+      '</div>' +
+      '<div class="comment-target">' + typeLabel + ' · <b>' + escapeHtml(c.targetName) + '</b></div>' +
+      '<div class="comment-message">' + escapeHtml(c.message) + '</div>' +
+      replyHtml +
+      '<div class="comment-meta" style="margin-top:10px;">' +
+      '<span>' + (c.status === 'pending' ? '⏳ Pending' : '✓ Replied') + '</span>' +
+      '<button class="icon-mini danger" onclick="deleteComment(\'' + escAttr(c.commentId) + '\')" style="width:auto;padding:3px 9px;font-size:9.5px;">Delete</button>' +
+      '</div>';
+
+    frag.appendChild(card);
+  });
+  box.appendChild(frag);
+}
+
+async function submitReply(commentId) {
+  var ta = document.getElementById('reply_' + commentId);
+  if (!ta) return;
+  var reply = ta.value.trim();
+  if (!reply) { Toast.error('Reply cannot be empty'); return; }
+  Sound.click(); showLoader();
+  var res = await callApi('replyComment', { password: ADMIN_PW, commentId: commentId, reply: reply });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  Toast.success('✓ Reply sent');
+  loadComments();
+}
+
+async function deleteComment(commentId) {
+  var ok = await showConfirm({
+    icon: '🗑️', title: 'Delete comment?', message: 'Ye permanent hai.', confirmText: 'Delete'
+  });
+  if (!ok) return;
+  Sound.click(); showLoader();
+  var res = await callApi('deleteComment', { password: ADMIN_PW, commentId: commentId });
+  hideLoader();
+  if (!res.success) { Toast.error(res.message); return; }
+  Toast.success('✓ Comment deleted');
+  loadComments();
+}
+
 /* ========== EXPORT ========== */
 function downloadCsv(filename, rows) {
   var csv = rows.map(function (r) {
@@ -1116,7 +1889,8 @@ window.addEventListener('load', function () {
   });
 
   ['confirmModal', 'studentModal', 'editStudentModal', 'editTaskModal', 'csvModal',
-    'announceModal', 'backupModal', 'changePwModal', 'qrModal', 'cmdPalette'].forEach(function (id) {
+    'announceModal', 'backupModal', 'changePwModal', 'qrModal', 'cmdPalette',
+    'questionsModal', 'bulkQuestionsModal', 'examResultsModal', 'adminEmailModal'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.addEventListener('click', function (e) {
         if (e.target === this) {
@@ -1130,6 +1904,10 @@ window.addEventListener('load', function () {
           else if (id === 'changePwModal') closeChangePw();
           else if (id === 'qrModal') closeQrModal();
           else if (id === 'cmdPalette') closeCommandPalette();
+          else if (id === 'questionsModal') closeQuestionsModal();
+          else if (id === 'bulkQuestionsModal') closeBulkQuestionsModal();
+          else if (id === 'examResultsModal') closeExamResults();
+          else if (id === 'adminEmailModal') closeAdminEmailModal();
         }
       });
     });
@@ -1151,6 +1929,10 @@ window.addEventListener('load', function () {
       else if (document.getElementById('backupModal').classList.contains('show')) closeBackupModal();
       else if (document.getElementById('changePwModal').classList.contains('show')) closeChangePw();
       else if (document.getElementById('qrModal').classList.contains('show')) closeQrModal();
+      else if (document.getElementById('questionsModal').classList.contains('show')) closeQuestionsModal();
+      else if (document.getElementById('bulkQuestionsModal').classList.contains('show')) closeBulkQuestionsModal();
+      else if (document.getElementById('examResultsModal').classList.contains('show')) closeExamResults();
+      else if (document.getElementById('adminEmailModal').classList.contains('show')) closeAdminEmailModal();
     }
   });
 
