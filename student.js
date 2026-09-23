@@ -7,6 +7,7 @@ window.addEventListener('load', function () { setTimeout(hideLoader, 400); });
 
 async function doLogin() {
   var code = document.getElementById('codeInput').value.trim();
+  code = code.toUpperCase();
   var err = document.getElementById('loginError');
   var btn = document.getElementById('loginBtn');
   err.textContent = '';
